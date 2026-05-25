@@ -1,0 +1,73 @@
+2026-04-22T19:37:20.382+0530 D/AppBuilder: Running Sketchware Pro v7.0.0 (150)
+2026-04-22T19:37:20.384+0530 D/AppBuilder: base.apk's size is 130 MB (130267466 B)
+2026-04-22T19:37:20.751+0530 D/AppBuilder:c: Compiling built-in library resources took 0 ms
+2026-04-22T19:37:20.751+0530 D/AppBuilder:cLLR: About to compile 0 local libraries
+2026-04-22T19:37:20.751+0530 D/AppBuilder:c: Compiling local library resources took 0 ms
+2026-04-22T19:37:20.752+0530 D/AppBuilder:cPR: Now executing: [/data/user/0/pro.sketchware/cache/aapt2, compile, --dir, /storage/emulated/0/.sketchware/mysc/602/app/src/main/res, -o, /storage/emulated/0/.sketchware/mysc/602/bin/res/project.zip]
+2026-04-22T19:37:20.829+0530 D/AppBuilder:c: Compiling project generated resources took 77 ms
+2026-04-22T19:37:20.830+0530 D/AppBuilder:c: Compiling project imported resources took 0 ms
+2026-04-22T19:37:20.833+0530 W/ManageLocalLibrary: Read null from file /storage/emulated/0/.sketchware/data/602/local_library, deleting invalid configuration.
+2026-04-22T19:37:20.847+0530 E/SketchwareUtil: Failed to toast regular message, Toast's message was: "Invalid Local library configuration found! Temporarily using none"
+java.lang.NullPointerException: Can't toast on a thread that has not called Looper.prepare()
+	at com.android.internal.util.Preconditions.checkNotNull(Preconditions.java:167)
+	at android.widget.Toast.getLooper(Toast.java:203)
+	at android.widget.Toast.<init>(Toast.java:188)
+	at android.widget.Toast.makeText(Toast.java:583)
+	at android.widget.Toast.makeText(Toast.java:560)
+	at android.widget.Toast.makeText(Toast.java:534)
+	at a.a.a.bB.a(bB.java:55)
+	at a.a.a.bB.b(bB.java:64)
+	at pro.sketchware.utility.SketchwareUtil.toastError(SketchwareUtil.java:87)
+	at pro.sketchware.utility.SketchwareUtil.toastError(SketchwareUtil.java:99)
+	at mod.agus.jcoderz.editor.manage.library.locallibrary.ManageLocalLibrary.<init>(ManageLocalLibrary.java:45)
+	at mod.jbk.build.compiler.resource.ResourceCompiler$Aapt2Compiler.link(ResourceCompiler.java:206)
+	at mod.jbk.build.compiler.resource.ResourceCompiler$Aapt2Compiler.compile(ResourceCompiler.java:136)
+	at mod.jbk.build.compiler.resource.ResourceCompiler.compile(ResourceCompiler.java:62)
+	at a.a.a.ProjectBuilder.compileResources(ProjectBuilder.java:190)
+	at com.besome.sketch.design.DesignActivity$BuildTask.doInBackground(DesignActivity.java:1132)
+	at com.besome.sketch.design.DesignActivity$BuildTask.$r8$lambda$0AmVsWQJ9oulgeP8eMAUbl0tGkA(Unknown Source:0)
+	at com.besome.sketch.design.DesignActivity$BuildTask$$ExternalSyntheticLambda1.run(D8$$SyntheticClass:0)
+	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1154)
+	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:652)
+	at java.lang.Thread.run(Thread.java:1564)
+
+2026-04-22T19:37:20.849+0530 D/AppBuilder:l: [/data/user/0/pro.sketchware/cache/aapt2, link, --allow-reserved-package-id, --auto-add-overlay, --no-version-vectors, --no-version-transitions, --min-sdk-version, 21, --target-sdk-version, 34, --version-code, 1, --version-name, 1.0, -I, /data/user/0/pro.sketchware/files/libs/android.jar, -A, /storage/emulated/0/.sketchware/mysc/602/app/src/main/assets, -R, /storage/emulated/0/.sketchware/mysc/602/bin/res/project.zip, -R, /storage/emulated/0/.sketchware/mysc/602/bin/res/project.zip, --java, /storage/emulated/0/.sketchware/mysc/602/gen, --proguard, /storage/emulated/0/.sketchware/mysc/602/bin/aapt_rules.pro, --manifest, /storage/emulated/0/.sketchware/mysc/602/app/src/main/AndroidManifest.xml, -o, /storage/emulated/0/.sketchware/mysc/602/bin/atnew.apk.res]
+2026-04-22T19:37:21.090+0530 D/AppBuilder:c: Linking resources took 259 ms
+2026-04-22T19:37:21.091+0530 D/AppBuilder: Compiling resources took 343 ms
+2026-04-22T19:37:21.128+0530 D/AppBuilder: Running Eclipse compiler with these arguments: [-1.7, -nowarn, -d, /storage/emulated/0/.sketchware/mysc/602/bin/classes, -cp, /storage/emulated/0/.sketchware/mysc/602/bin/classes:/data/user/0/pro.sketchware/files/libs/android.jar:/data/user/0/pro.sketchware/files/libs/libs/http-legacy-android-28/classes.jar:, -proc:none, /storage/emulated/0/.sketchware/mysc/602/app/src/main/java, /storage/emulated/0/.sketchware/mysc/602/gen]
+2026-04-22T19:37:21.926+0530 D/AppBuilder: System.out of Eclipse compiler: 
+2026-04-22T19:37:21.926+0530 D/AppBuilder: System.err of Eclipse compiler: 
+2026-04-22T19:37:21.927+0530 D/AppBuilder: Compiling Java files took 805 ms
+2026-04-22T19:37:21.949+0530 D/AppBuilder: Running Dx with these arguments: [--debug, --verbose, --multi-dex, --output=/storage/emulated/0/.sketchware/mysc/602/bin/dex, /storage/emulated/0/.sketchware/mysc/602/bin/classes]
+processing /storage/emulated/0/.sketchware/mysc/602/bin/classes/./com/my/newproject/DebugActivity.class...
+processing /storage/emulated/0/.sketchware/mysc/602/bin/classes/./com/my/newproject/DebugActivity$1.class...
+processing /storage/emulated/0/.sketchware/mysc/602/bin/classes/./com/my/newproject/FileUtil.class...
+processing /storage/emulated/0/.sketchware/mysc/602/bin/classes/./com/my/newproject/MainActivity.class...
+processing /storage/emulated/0/.sketchware/mysc/602/bin/classes/./com/my/newproject/MainBinding.class...
+processing /storage/emulated/0/.sketchware/mysc/602/bin/classes/./com/my/newproject/R.class...
+processing /storage/emulated/0/.sketchware/mysc/602/bin/classes/./com/my/newproject/R$color.class...
+processing /storage/emulated/0/.sketchware/mysc/602/bin/classes/./com/my/newproject/R$drawable.class...
+processing /storage/emulated/0/.sketchware/mysc/602/bin/classes/./com/my/newproject/R$id.class...
+processing /storage/emulated/0/.sketchware/mysc/602/bin/classes/./com/my/newproject/R$layout.class...
+processing /storage/emulated/0/.sketchware/mysc/602/bin/classes/./com/my/newproject/R$mipmap.class...
+processing /storage/emulated/0/.sketchware/mysc/602/bin/classes/./com/my/newproject/R$string.class...
+processing /storage/emulated/0/.sketchware/mysc/602/bin/classes/./com/my/newproject/R$style.class...
+processing /storage/emulated/0/.sketchware/mysc/602/bin/classes/./com/my/newproject/SketchApplication.class...
+processing /storage/emulated/0/.sketchware/mysc/602/bin/classes/./com/my/newproject/SketchApplication$1.class...
+processing /storage/emulated/0/.sketchware/mysc/602/bin/classes/./com/my/newproject/SketchLogger.class...
+processing /storage/emulated/0/.sketchware/mysc/602/bin/classes/./com/my/newproject/SketchLogger$1.class...
+processing /storage/emulated/0/.sketchware/mysc/602/bin/classes/./com/my/newproject/SketchwareUtil.class...
+processing /storage/emulated/0/.sketchware/mysc/602/bin/classes/./com/my/newproject/SketchwareUtil$1.class...
+2026-04-22T19:37:22.318+0530 D/AppBuilder: Dx took 371 ms
+2026-04-22T19:37:22.324+0530 D/AppBuilder: Will merge these 2 DEX files to classes.dex: [/data/user/0/pro.sketchware/files/libs/dexs/http-legacy-android-28.dex, /storage/emulated/0/.sketchware/mysc/602/bin/dex/classes.dex]
+2026-04-22T19:37:22.325+0530 D/AppBuilder: Skipped merging DEX files due to debug build with minSdkVersion >= 21
+Packaging atnew.apk.unsigned
+/storage/emulated/0/.sketchware/mysc/602/bin/atnew.apk.res:
+=> AndroidManifest.xml
+=> res/drawable-xhdpi-v4/default_image.png
+=> res/layout/main.xml
+=> res/mipmap-xhdpi-v4/ic_launcher.png
+=> resources.arsc
+/data/user/0/pro.sketchware/files/libs/dexs/http-legacy-android-28.dex => classes.dex
+/storage/emulated/0/.sketchware/mysc/602/bin/dex/classes.dex => classes2.dex
+2026-04-22T19:37:22.453+0530 D/AppBuilder: Time passed since starting to compile resources until building the unsigned APK: 1705 ms
