@@ -1,0 +1,11 @@
+{
+  "name": "RangMatch Pro — Textile Colour Matching Studio",
+  "short_name": "RangMatch Pro",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#050607",
+  "theme_color": "#050607",
+  "description": "Fabric-aware 8-colour matching assistant for digital textile designers.",
+  "icons": [{"src":"icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]
+}
