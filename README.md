@@ -23,3 +23,8 @@ GitHub Pages workflow publishes the root static site automatically.
 GitHub Actions builds `RangMatch-Pro.apk` and publishes a rolling `latest-build` release.
 
 > Fabric advice and screen previews are design guidance, not scientific colour/lab prediction. Always approve a physical strike-off/sample before bulk production.
+## Direct website preview
+https://raw.githack.com/affushk/rangmatch1/main/index.html
+
+## Stable APK release
+https://github.com/affushk/rangmatch1/releases/download/latest-build/RangMatch-Pro.apk
