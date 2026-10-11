@@ -44,7 +44,7 @@ public class MainActivity extends Activity {
                 return true;
             }
         });
-        webView.loadUrl("https://raw.githack.com/affushk/rangmatch1/main/index.html");
+        webView.loadUrl("file:///android_asset/index.html");
     }
 
     @Override
