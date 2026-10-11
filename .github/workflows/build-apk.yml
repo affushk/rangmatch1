@@ -12,6 +12,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: rangmatch-apk-release
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -36,5 +40,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release delete latest-build -y --cleanup-tag || true
-          gh release create latest-build RangMatch-Pro.apk --title "RangMatch Pro — Latest APK" --notes "Auto-built Android APK from the latest main branch." --latest
+          if gh release view latest-build >/dev/null 2>&1; then
+            gh release upload latest-build RangMatch-Pro.apk --clobber
+          else
+            gh release create latest-build RangMatch-Pro.apk --title "RangMatch Pro — Latest APK" --notes "Auto-built Android APK from the latest main branch." --latest
+          fi
