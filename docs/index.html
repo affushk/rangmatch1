@@ -8,7 +8,45 @@ const $=id=>document.getElementById(id);
 const styles=['Paisley','Kalamkari','Ikat','Geometric','Geometric paisley','Bandhani','Block-print floral','Mughal jaal'];
 const quick=['#FBE4E8','#DFEDF9','#E4EDDC','#F4EDDA','#F2BE22','#E92991','#244DA4','#24A854','#7A1F35','#1B2341','#125645'];
 const catalogue=[
-['Blush pink + teal','Light','FBE4E8 2E7D6B 8FD0BE 3E9C8A'],['Bridal red + gold','Festive','A3122A F2C14E 7A0C1E FFF1D6'],['Mustard + deep green','Bright','D9A826 1F5E3A 4C8A63 FFF4D2'],['Maroon + beige','Dark','7A1F35 E8D9BE A8485E F7EFE0'],['Powder blue + navy','Light','D8E9F6 244566 668FA8 FFF6E4'],['Sage + dusty rose','Dusty','CBD8C0 834C60 B77F88 FFF3DE'],['Fuchsia + mint','Bright','DD388D B0F6D8 307E6B FFF7E6'],['Teal + saffron','Festive','105A60 F4C763 BD784D FFF0CA'],['Midnight + silver','Dark','222843 CCD7E5 708099 F3E9D4'],['Clay + ink','Dusty','CF9D8F 513F51 84677A F7E7CD']];
+['Blush pink + teal','Light','FBE4E8 2E7D6B 8FD0BE 3E9C8A'],['Bridal red + gold','Festive','A3122A F2C14E 7A0C1E FFF1D6'],['Mustard + deep green','Bright','D9A826 1F5E3A 4C8A63 FFF4D2'],['Maroon + beige','Dark','7A1F35 E8D9BE A8485E F7EFE0'],['Powder blue + navy','Light','D8E9F6 244566 668FA8 FFF6E4'],['Sage + dusty rose','Dusty','CBD8C0 834C60 B77F88 FFF3DE'],['Fuchsia + mint','Bright','DD388D B0F6D8 307E6B FFF7E6'],['Teal + saffron','Festive','105A60 F4C763 BD784D FFF0CA'],['Midnight + silver','Dark','222843 CCD7E5 708099 F3E9D4'],['Clay + ink','Dusty','CF9D8F 513F51 84677A F7E7CD'],
+["Indigo + madder", "Most used", "243D61 F0DFC0 A74737 C59A62"],
+["Ivory + indigo", "Most used", "F4EBD8 304F72 AAB7BD B34944"],
+["Bottle green + cream", "Most used", "204B40 E9D9AF 9A7154 D8856C"],
+["Black + sindoor", "Most used", "222024 DD6652 993B32 F5D7A2"],
+["Kora + mehndi", "Most used", "E8D9B6 4B6545 B69764 9A524A"],
+["Terracotta + cream", "Most used", "AB5138 F6E7CA 6A342A 465D4F"],
+["Navy + mustard", "Most used", "21344F E4B859 AA773E F8E7C8"],
+["Rani pink + ivory", "Most used", "B12F66 F9E5C9 6A2549 D9AF66"],
+["Kora ivory + madder", "Light", "F8EEDB 9C443F C78F76 647B62"],
+["Mint + peacock", "Light", "D9F2E7 226663 83A98E C56C62"],
+["Butter yellow + cornflower", "Light", "F8EBB5 47668C 93A6BA B87849"],
+["Lilac + aubergine", "Light", "EAE1F4 664676 AC8BB2 648478"],
+["Peach + terracotta", "Light", "FAE1D1 985037 C18F6C 517867"],
+["Pistachio + olive", "Light", "E4EDCB 576433 AAB37F BA6C65"],
+["Turmeric + ink", "Bright", "F4BD32 223E60 B06C2B F8E5B7"],
+["Parrot green + jamun", "Bright", "91BC39 56254F 596E2F F7D789"],
+["Cobalt + mango", "Bright", "254FC3 FFD45F F09235 DAE9F7"],
+["Vermilion + midnight", "Bright", "E65439 302943 A42F37 FFE6A7"],
+["Lagoon + navy", "Bright", "29B9B2 193D5B 287A83 FFE49E"],
+["Tangerine + plum", "Bright", "F68B38 60334E B4514B FFE7B7"],
+["Dusty mauve + mulberry", "Dusty", "C7A8B9 633D58 967589 E4D6BC"],
+["Stone blue + charcoal", "Dusty", "A6B8C3 344650 6D8690 EBDCCA"],
+["Antique sand + rust", "Dusty", "D6C4A9 85523D B19370 637260"],
+["Smoky lilac + grape", "Dusty", "B8ADBE 564361 87748D DBCDB3"],
+["Washed olive + bark", "Dusty", "B2B497 514C3F 85866A E1CEB0"],
+["Muted peach + slate", "Dusty", "D5B0A0 485663 A87A6F E7D7C1"],
+["Ink black + ecru", "Dark", "222226 E8D8B9 997F6F C96154"],
+["Forest + almond", "Dark", "193F34 E3CBA0 7D986C D27D66"],
+["Aubergine + old rose", "Dark", "42243E E9ACB6 A56982 F4D6AB"],
+["Petrol + copper", "Dark", "173E4B E2AD83 738F92 ECE0BC"],
+["Coffee + buttermilk", "Dark", "49312B F0DBAD A57F61 CB8E77"],
+["Jamun + celadon", "Dark", "412746 BCD5B7 957291 EAC89E"],
+["Peacock + antique gold", "Festive", "174C64 E8C478 B88848 E39895"],
+["Emerald + ruby", "Festive", "16664F F4CA82 8B264F FBE7BD"],
+["Saffron + sindoor", "Festive", "F3B653 923431 C87931 FFF0C4"],
+["Wine + champagne", "Festive", "682540 EFD298 AA5870 F7E5C5"],
+["Amethyst + marigold", "Festive", "603879 F7C258 BC8252 F4D7CB"],
+["Royal blue + vermilion", "Festive", "223C87 F6D184 C95643 F7E8C8"]];
 const roles=['Ground','Motif','Inner','Flower']; const valid=x=>/^#[0-9a-f]{6}$/i.test(x);
 let tab='Match',view='Swatch',style=styles[0],size='Medium',ground=quick[0],mood='Most used',saved=[],edits=new Map(),seq=0;
 try{saved=JSON.parse(localStorage.getItem('rang-colour-match-v2')||'[]').filter(p=>p.c?.length===4&&p.c.every(valid))}catch{}
@@ -29,7 +67,7 @@ function picture(c,mode,exportTile=false){const [bg,m,i,f]=c,uid='r'+(++seq),k=m
 function hsl(h,s,l){h=(h+720)%360;const a=s*Math.min(l,1-l);return '#'+[0,8,4].map(n=>{const k=(n+h/30)%12;return Math.round(255*(l-a*Math.max(-1,Math.min(k-3,9-k,1)))).toString(16).padStart(2,'0')}).join('').toUpperCase()}
 function light(c){return c.slice(1).match(/../g).map(x=>parseInt(x,16)/255).map(x=>x<=.04045?x/12.92:((x+.055)/1.055)**2.4).reduce((v,x,j)=>v+x*[.2126,.7152,.0722][j],0)}
 function matches(){const [r,g,b]=ground.slice(1).match(/../g).map(x=>parseInt(x,16)/255),mx=Math.max(r,g,b),d=mx-Math.min(r,g,b),h=d?60*(mx===r?(g-b)/d:mx===g?2+(b-r)/d:4+(r-g)/d):0,dark=light(ground)<.23;
- return [['Complementary',180],['Analogous 1',-35],['Analogous 2',35],['Split complementary',150],['Triadic',120],['Tone on tone',0]].map(([name,a],j)=>{let c=[ground,hsl(h+a,.53,dark?.76:.32),hsl(h+a,.34,dark?.47:.68),hsl(h+a+18,.43,dark?.88:.47)];if(!j&&ground===quick[0]){name='Blush pink + teal';c=catalogue[0][2].split(' ').map(x=>'#'+x)}return {id:ground+j,name,c}})}
+ return [['Complementary',180],['Analogous 1',-35],['Analogous 2',35],['Split complementary',150],['Triadic',120],['Tone on tone',0],['Cool accent',-105],['Warm accent',65]].map(([name,a],j)=>{let c=[ground,hsl(h+a,.53,dark?.76:.32),hsl(h+a,.34,dark?.47:.68),hsl(h+a+18,.43,dark?.88:.47)];if(!j&&ground===quick[0]){name='Blush pink + teal';c=catalogue[0][2].split(' ').map(x=>'#'+x)}return {id:ground+j,name,c}})}
 const signature=p=>p.c.join(',');function button(label,fn){const b=document.createElement('button');b.textContent=label;b.onclick=fn;return b}
 function toggle(id,values,selected,change){$(id).replaceChildren(...values.map(v=>{const b=button(v,()=>change(v));b.setAttribute('aria-pressed',v===selected);return b}))}
 function setGround(x){if(!valid(x)){note('Enter a six-digit HEX colour');render();return}ground=x.toUpperCase();render()}
@@ -40,7 +78,7 @@ function card(p){const e=document.createElement('article');e.className='card';e.
  const isSaved=saved.some(x=>signature(x)===signature(p));e.querySelector('.title').append(button(isSaved?'♥ Saved':'♡ Save',()=>{if(isSaved)saved=saved.filter(x=>signature(x)!==signature(p));else saved.push({...p,id:'s'+Date.now(),c:[...p.c]});persist();render()}));
  const a=light(p.c[0]),b=light(p.c[1]),contrast=(Math.max(a,b)+.05)/(Math.min(a,b)+.05);e.querySelector('.meta').textContent='Motif contrast '+contrast.toFixed(2)+':1 · '+(contrast>=7?'High':contrast>=4.5?'Good':contrast>=3?'Medium':'Low');
  p.c.forEach((hex,j)=>{const wrap=document.createElement('div');wrap.className='colour';const input=document.createElement('input');input.type='color';input.value=hex;input.setAttribute('aria-label','Edit '+roles[j]+' in '+p.name);input.onchange=()=>{let c=[...p.c];c[j]=input.value.toUpperCase();if(tab==='Saved'){p.c=c;persist()}else edits.set(p.id,c);render()};const label=document.createElement('div'),role=document.createElement('small');role.textContent=roles[j];label.append(button(hex,()=>copy(hex)),role);wrap.append(input,label);e.querySelector('.colours').append(wrap)});e.querySelector('.foot').append(button('Copy all',()=>copy(p.c.join('  '))),button('Download PNG',()=>download(p)));addCardTools(e,p);return e}
-function render(){compareBar();const tabs=['Match','Ready-made sets','Saved ('+saved.length+')'];toggle('tabs',tabs,tab==='Saved'?tabs[2]:tab,v=>{tab=v.startsWith('Saved')?'Saved':v;render()});toggle('views',['Swatch','Kurti'],view,v=>{view=v;render()});toggle('sizes',['Small','Medium','Large'],size,v=>{size=v;render()});toggle('moods',['Most used','Light','Bright','Dusty','Dark','Festive'],mood,v=>{mood=v;render()});$('moods').hidden=tab!=='Ready-made sets';$('ground').hidden=tab!=='Match';$('hex').value=$('picker').value=ground;for(const b of $('quick').children)b.classList.toggle('current',b.title===ground);let items=tab==='Saved'?saved:tab==='Match'?matches():catalogue.filter(s=>mood==='Most used'||mood===s[1]).map(s=>({id:s[0],name:s[0],c:s[2].split(' ').map(x=>'#'+x)}));$('results').replaceChildren(...items.map(p=>card(tab!=='Saved'&&edits.has(p.id)?{...p,c:edits.get(p.id)}:p)));if(!items.length)$('results').textContent='Tap Save on a palette to keep it here.'}
+function render(){compareBar();const tabs=['Match','Ready-made sets','Saved ('+saved.length+')'];toggle('tabs',tabs,tab==='Saved'?tabs[2]:tab,v=>{tab=v.startsWith('Saved')?'Saved':v;render()});toggle('views',['Swatch','Kurti'],view,v=>{view=v;render()});toggle('sizes',['Small','Medium','Large'],size,v=>{size=v;render()});toggle('moods',['Most used','Light','Bright','Dusty','Dark','Festive'],mood,v=>{mood=v;render()});$('moods').hidden=tab!=='Ready-made sets';$('ground').hidden=tab!=='Match';$('hex').value=$('picker').value=ground;for(const b of $('quick').children)b.classList.toggle('current',b.title===ground);let items=tab==='Saved'?saved:tab==='Match'?matches():catalogue.filter(s=>mood===s[1]).map(s=>({id:s[0],name:s[0],c:s[2].split(' ').map(x=>'#'+x)}));$('results').replaceChildren(...items.map(p=>card(tab!=='Saved'&&edits.has(p.id)?{...p,c:edits.get(p.id)}:p)));if(!items.length)$('results').textContent='Tap Save on a palette to keep it here.'}
 let spacing = 1;
 let png = '';
 let uploadTicket = 0;
