@@ -3,6 +3,7 @@
 
 .art{cursor:zoom-in}.viewerTools,#compareBar{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.viewerTools{margin-top:10px}.viewerTools button{font-size:13px}
 #compareBar{position:fixed;bottom:10px;left:50%;transform:translateX(-50%);z-index:4;width:max-content;max-width:95vw;padding:9px;background:#33303a;border:1px solid #796759;border-radius:10px;box-shadow:0 4px 18px #0008}main{padding-bottom:95px}button:disabled{opacity:.5}#space{width:100%;accent-color:#efbe89}#upload{width:100%;font-size:13px}#uploadName{overflow-wrap:anywhere}details{margin:10px 0}summary{cursor:pointer;color:#f5daba}dialog{width:min(90vw,740px);max-height:90dvh;overflow:auto;color:inherit;background:#232228;border:1px solid #685d69;border-radius:12px;padding:15px}dialog::backdrop{background:#09080cde}dialog h2{margin:0;font-size:20px}.pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:14px 0}figure{margin:0;min-width:0}.viewerArt{background:#302c33}.viewerArt svg{width:100%;display:block}figcaption{font-size:14px;margin:5px 0}.zoomStage{overflow:auto;max-height:63dvh;margin-top:12px}.zoomStage figure{margin:0 auto}.zoomStage svg.kurti{height:auto}.viewerTools button[aria-pressed=true]{color:#29202a}.zoomStage figure:has(.kurti){max-width:none}
+.colour .hexCopy{min-height:36px;min-width:82px;text-align:left;padding:3px 5px;touch-action:manipulation}.hexCopy:active{color:#f6ddbb}@media(pointer:coarse){.colour .hexCopy{min-height:44px}}
 </style><main><header><small>RANG STUDIO</small><h1>Colour Match</h1><p>Choose a ground colour to explore matching textile prints.</p></header><div class="workspace"><aside><div class="field"><span class="lab">View</span><div id="tabs" class="segment"></div></div><div class="line"><div class="field"><span class="lab">Preview</span><div id="views" class="segment"></div></div><div class="field grow"><label for="style">Motif style</label><select id="style"></select></div></div><div class="field"><span class="lab">Motif size</span><div id="sizes" class="segment"></div></div><details class="panel"><summary>Motif spacing &amp; PNG upload</summary><label for="space">Repeat spacing · <output id="spaceLabel">100%</output></label><input type="range" id="space" min="100" max="220" step="10" value="100"><label for="upload">Use your own PNG motif</label><input type="file" id="upload" accept="image/png"><small id="uploadName"></small></details><div id="ground" class="panel"><div class="ground"><label for="hex">Ground colour</label><input type="color" id="picker" aria-label="Ground colour picker"><input id="hex" class="hex" maxlength="7" spellcheck="false"></div><span class="lab">Quick picks</span><div id="quick" class="quick"></div></div><div id="moods" class="moods"></div></aside><section class="grid" id="results" aria-label="Palette results"></section></div></main><div id="compareBar" hidden></div><dialog id="viewer" aria-labelledby="viewerTitle"><div class="title"><h2 id="viewerTitle"></h2><button id="viewerClose">Close</button></div><div id="viewerBody"></div></dialog><div id="toast" role="status" hidden></div><script>
 const $=id=>document.getElementById(id);
 const styles=['Paisley','Kalamkari','Ikat','Geometric','Geometric paisley','Bandhani','Block-print floral','Mughal jaal'];
@@ -71,13 +72,52 @@ function matches(){const [r,g,b]=ground.slice(1).match(/../g).map(x=>parseInt(x,
 const signature=p=>p.c.join(',');function button(label,fn){const b=document.createElement('button');b.textContent=label;b.onclick=fn;return b}
 function toggle(id,values,selected,change){$(id).replaceChildren(...values.map(v=>{const b=button(v,()=>change(v));b.setAttribute('aria-pressed',v===selected);return b}))}
 function setGround(x){if(!valid(x)){note('Enter a six-digit HEX colour');render();return}ground=x.toUpperCase();render()}
-async function copy(txt){try{await navigator.clipboard.writeText(txt);note('Copied')}catch{prompt('Copy colours',txt)}}
+function copySelection(text){
+ const previous=document.activeElement;
+ const input=document.createElement('textarea');
+ input.value=text;
+ input.readOnly=true;
+ input.setAttribute('aria-label','Colour code to copy');
+ input.style.cssText='position:fixed;left:0;top:0;opacity:0;font-size:16px';
+ document.body.append(input);
+ try{
+  input.focus({preventScroll:true});
+  input.select();
+  input.setSelectionRange(0,text.length);
+  return document.execCommand('copy');
+ }catch{return false}
+ finally{
+  input.remove();
+  if(previous&&previous.isConnected)previous.focus({preventScroll:true});
+ }
+}
+async function copy(text,trigger){
+ let done=false;
+ if(window.isSecureContext&&navigator.clipboard?.writeText){
+  try{await navigator.clipboard.writeText(text);done=true}catch{}
+ }
+ if(!done)done=copySelection(text);
+ if(!done){window.prompt('Select the text and tap Copy',text);return}
+ if(trigger){
+  clearTimeout(trigger.copyTimer);
+  trigger.textContent='✓ Copied';
+  trigger.copyTimer=setTimeout(()=>{trigger.textContent=text},1300);
+ }
+ note(trigger?text+' copied':'Palette colours copied');
+}
+function hexButton(hex){
+ const b=button(hex,()=>copy(hex,b));
+ b.className='hexCopy';
+ b.setAttribute('aria-label','Copy '+hex);
+ b.title='Copy '+hex;
+ return b;
+}
 function download(p){const kurti=view==='Kurti',w=kurti?1500:1536,h=kurti?1800:1536;const svg=picture(p.c,view,!kurti).replace('<svg ','<svg width="'+w+'" height="'+h+'" ');const url=URL.createObjectURL(new Blob([svg],{type:'image/svg+xml'})),img=new Image();img.onload=()=>{const cv=document.createElement('canvas');cv.width=w;cv.height=h;cv.getContext('2d').drawImage(img,0,0,w,h);URL.revokeObjectURL(url);cv.toBlob(blob=>{if(!blob)return note('Download failed');const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='Rang-'+view+'.png';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),30000)})};img.onerror=()=>{URL.revokeObjectURL(url);note('Download failed')};img.src=url}
 function persist(){try{localStorage.setItem('rang-colour-match-v2',JSON.stringify(saved))}catch{note('Saved for this session')}}
 function card(p){const e=document.createElement('article');e.className='card';e.innerHTML='<div class="art">'+picture(p.c,view)+'</div><div class="content"><div class="title"><h2></h2></div><div class="meta"></div><div class="colours"></div><div class="foot"></div></div>';e.querySelector('h2').textContent=p.name;
  const isSaved=saved.some(x=>signature(x)===signature(p));e.querySelector('.title').append(button(isSaved?'♥ Saved':'♡ Save',()=>{if(isSaved)saved=saved.filter(x=>signature(x)!==signature(p));else saved.push({...p,id:'s'+Date.now(),c:[...p.c]});persist();render()}));
  const a=light(p.c[0]),b=light(p.c[1]),contrast=(Math.max(a,b)+.05)/(Math.min(a,b)+.05);e.querySelector('.meta').textContent='Motif contrast '+contrast.toFixed(2)+':1 · '+(contrast>=7?'High':contrast>=4.5?'Good':contrast>=3?'Medium':'Low');
- p.c.forEach((hex,j)=>{const wrap=document.createElement('div');wrap.className='colour';const input=document.createElement('input');input.type='color';input.value=hex;input.setAttribute('aria-label','Edit '+roles[j]+' in '+p.name);input.onchange=()=>{let c=[...p.c];c[j]=input.value.toUpperCase();if(tab==='Saved'){p.c=c;persist()}else edits.set(p.id,c);render()};const label=document.createElement('div'),role=document.createElement('small');role.textContent=roles[j];label.append(button(hex,()=>copy(hex)),role);wrap.append(input,label);e.querySelector('.colours').append(wrap)});e.querySelector('.foot').append(button('Copy all',()=>copy(p.c.join('  '))),button('Download PNG',()=>download(p)));addCardTools(e,p);return e}
+ p.c.forEach((hex,j)=>{const wrap=document.createElement('div');wrap.className='colour';const input=document.createElement('input');input.type='color';input.value=hex;input.setAttribute('aria-label','Edit '+roles[j]+' in '+p.name);input.onchange=()=>{let c=[...p.c];c[j]=input.value.toUpperCase();if(tab==='Saved'){p.c=c;persist()}else edits.set(p.id,c);render()};const label=document.createElement('div'),role=document.createElement('small');role.textContent=roles[j];label.append(hexButton(hex),role);wrap.append(input,label);e.querySelector('.colours').append(wrap)});e.querySelector('.foot').append(button('Copy all',()=>copy(p.c.join('  '))),button('Download PNG',()=>download(p)));addCardTools(e,p);return e}
 function render(){compareBar();const tabs=['Match','Ready-made sets','Saved ('+saved.length+')'];toggle('tabs',tabs,tab==='Saved'?tabs[2]:tab,v=>{tab=v.startsWith('Saved')?'Saved':v;render()});toggle('views',['Swatch','Kurti'],view,v=>{view=v;render()});toggle('sizes',['Small','Medium','Large'],size,v=>{size=v;render()});toggle('moods',['Most used','Light','Bright','Dusty','Dark','Festive'],mood,v=>{mood=v;render()});$('moods').hidden=tab!=='Ready-made sets';$('ground').hidden=tab!=='Match';$('hex').value=$('picker').value=ground;for(const b of $('quick').children)b.classList.toggle('current',b.title===ground);let items=tab==='Saved'?saved:tab==='Match'?matches():catalogue.filter(s=>mood===s[1]).map(s=>({id:s[0],name:s[0],c:s[2].split(' ').map(x=>'#'+x)}));$('results').replaceChildren(...items.map(p=>card(tab!=='Saved'&&edits.has(p.id)?{...p,c:edits.get(p.id)}:p)));if(!items.length)$('results').textContent='Tap Save on a palette to keep it here.'}
 let spacing = 1;
 let png = '';
@@ -199,3 +239,4 @@ $('upload').onchange=async e=>{
 
 $('style').replaceChildren(...styles.map(s=>new Option(s,s)));$('style').onchange=e=>{style=e.target.value;render()};$('hex').onchange=e=>setGround('#'+e.target.value.trim().replace(/^#/,''));$('hex').onkeydown=e=>{if(e.key==='Enter')e.target.blur()};$('picker').onchange=e=>setGround(e.target.value);quick.forEach(c=>{const b=button('',()=>setGround(c));b.title=c;b.setAttribute('aria-label','Use '+c);b.style.background=c;$('quick').append(b)});render()
 </script></html>
+
