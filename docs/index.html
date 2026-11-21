@@ -1,6 +1,9 @@
 <!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#141419"><title>Colour Match · Rang Studio</title><style>
 *{box-sizing:border-box}body{margin:0;background:#141419;color:#faf5ee;font:16px/1.45 system-ui,sans-serif;color-scheme:dark}main{max-width:1480px;margin:auto;padding:24px clamp(15px,4vw,60px) 48px}header{border-bottom:1px solid #43404a;padding-bottom:17px;margin-bottom:19px}header small{color:#edb980;letter-spacing:.16em;font-weight:700}h1{font-size:clamp(28px,3vw,42px);line-height:1.15;margin:5px 0}p{color:#c1bac4;margin:5px 0}.workspace{display:grid;grid-template-columns:minmax(255px,300px) 1fr;gap:24px;align-items:start}aside{position:sticky;top:15px}.line{display:flex;gap:14px;align-items:end;flex-wrap:wrap}.field{margin-bottom:13px}label,.lab{display:block;color:#cbc1ca;font-size:13px;font-weight:600;margin-bottom:5px}.segment,.moods,.quick{display:flex;flex-wrap:wrap;gap:4px}button,select,input{font:inherit;color:inherit}button,select{border:1px solid #49444f;background:#26252c;border-radius:7px;padding:7px 10px;font-size:14px;cursor:pointer}button:hover{border-color:#e1b588}button[aria-pressed=true]{background:#f6ddbb;color:#29202a;border-color:#f6ddbb}button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid #eabd8b;outline-offset:2px}select{width:100%;min-height:36px}.grow{flex:1;min-width:130px}.panel{background:#232228;border:1px solid #38353f;border-radius:10px;padding:14px}.hex{width:98px;background:#19181e;border:1px solid #49444f;border-radius:5px;padding:5px 8px;font:15px monospace}.ground{display:flex;gap:10px;align-items:center;margin-bottom:12px}.ground label{margin:0 auto 0 0}input[type=color]{width:34px;height:32px;padding:0;border:0;background:none;cursor:pointer}.quick{gap:7px}.quick button{width:28px;height:28px;border-radius:50%;padding:0;border:1px solid #ffffff45}.quick .current{outline:2px solid white;outline-offset:1px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,265px),1fr));gap:18px;align-items:start}.card{min-width:0;background:#212027;border:1px solid #3b3741;border-radius:12px;overflow:hidden}.art{background:#2b2930}.art svg{display:block;width:100%;height:auto}.content{padding:13px}.title,.foot{display:flex;align-items:center;justify-content:space-between;gap:6px}.title h2{font-size:17px;margin:0}.title button,.foot button{font-size:13px}.meta{color:#bfb5c0;font-size:13px;margin:9px 0}.colours{display:grid;grid-template-columns:1fr 1fr;gap:8px}.colour{display:flex;align-items:center;gap:7px}.colour button{font:14px monospace;background:none;border:0;padding:0}.colour small{display:block;color:#bbb1be}.foot{margin-top:12px}.foot button{flex:1}#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#f8dfbe;color:#292029;padding:8px 17px;border-radius:8px;z-index:5} [hidden]{display:none!important}@media(max-width:740px){main{padding:16px 14px 36px}header{margin-bottom:12px;padding-bottom:10px}header small{font-size:11px}.workspace{display:block}aside{position:static;margin-bottom:14px}.grid{grid-template-columns:1fr}.field{margin-bottom:10px}.panel{padding:12px}.art svg.kurti{max-height:520px}header p{font-size:14px}}
-</style><main><header><small>RANG STUDIO</small><h1>Colour Match</h1><p>Choose a ground colour to explore matching textile prints.</p></header><div class="workspace"><aside><div class="field"><span class="lab">View</span><div id="tabs" class="segment"></div></div><div class="line"><div class="field"><span class="lab">Preview</span><div id="views" class="segment"></div></div><div class="field grow"><label for="style">Motif style</label><select id="style"></select></div></div><div class="field"><span class="lab">Motif size</span><div id="sizes" class="segment"></div></div><div id="ground" class="panel"><div class="ground"><label for="hex">Ground colour</label><input type="color" id="picker" aria-label="Ground colour picker"><input id="hex" class="hex" maxlength="7" spellcheck="false"></div><span class="lab">Quick picks</span><div id="quick" class="quick"></div></div><div id="moods" class="moods"></div></aside><section class="grid" id="results" aria-label="Palette results"></section></div></main><div id="toast" role="status" hidden></div><script>
+
+.art{cursor:zoom-in}.viewerTools,#compareBar{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.viewerTools{margin-top:10px}.viewerTools button{font-size:13px}
+#compareBar{position:fixed;bottom:10px;left:50%;transform:translateX(-50%);z-index:4;width:max-content;max-width:95vw;padding:9px;background:#33303a;border:1px solid #796759;border-radius:10px;box-shadow:0 4px 18px #0008}main{padding-bottom:95px}button:disabled{opacity:.5}#space{width:100%;accent-color:#efbe89}#upload{width:100%;font-size:13px}#uploadName{overflow-wrap:anywhere}details{margin:10px 0}summary{cursor:pointer;color:#f5daba}dialog{width:min(90vw,740px);max-height:90dvh;overflow:auto;color:inherit;background:#232228;border:1px solid #685d69;border-radius:12px;padding:15px}dialog::backdrop{background:#09080cde}dialog h2{margin:0;font-size:20px}.pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:14px 0}figure{margin:0;min-width:0}.viewerArt{background:#302c33}.viewerArt svg{width:100%;display:block}figcaption{font-size:14px;margin:5px 0}.zoomStage{overflow:auto;max-height:63dvh;margin-top:12px}.zoomStage figure{margin:0 auto}.zoomStage svg.kurti{height:auto}.viewerTools button[aria-pressed=true]{color:#29202a}.zoomStage figure:has(.kurti){max-width:none}
+</style><main><header><small>RANG STUDIO</small><h1>Colour Match</h1><p>Choose a ground colour to explore matching textile prints.</p></header><div class="workspace"><aside><div class="field"><span class="lab">View</span><div id="tabs" class="segment"></div></div><div class="line"><div class="field"><span class="lab">Preview</span><div id="views" class="segment"></div></div><div class="field grow"><label for="style">Motif style</label><select id="style"></select></div></div><div class="field"><span class="lab">Motif size</span><div id="sizes" class="segment"></div></div><details class="panel"><summary>Motif spacing &amp; PNG upload</summary><label for="space">Repeat spacing · <output id="spaceLabel">100%</output></label><input type="range" id="space" min="100" max="220" step="10" value="100"><label for="upload">Use your own PNG motif</label><input type="file" id="upload" accept="image/png"><small id="uploadName"></small></details><div id="ground" class="panel"><div class="ground"><label for="hex">Ground colour</label><input type="color" id="picker" aria-label="Ground colour picker"><input id="hex" class="hex" maxlength="7" spellcheck="false"></div><span class="lab">Quick picks</span><div id="quick" class="quick"></div></div><div id="moods" class="moods"></div></aside><section class="grid" id="results" aria-label="Palette results"></section></div></main><div id="compareBar" hidden></div><dialog id="viewer" aria-labelledby="viewerTitle"><div class="title"><h2 id="viewerTitle"></h2><button id="viewerClose">Close</button></div><div id="viewerBody"></div></dialog><div id="toast" role="status" hidden></div><script>
 const $=id=>document.getElementById(id);
 const styles=['Paisley','Kalamkari','Ikat','Geometric','Geometric paisley','Bandhani','Block-print floral','Mughal jaal'];
 const quick=['#FBE4E8','#DFEDF9','#E4EDDC','#F4EDDA','#F2BE22','#E92991','#244DA4','#24A854','#7A1F35','#1B2341','#125645'];
@@ -17,10 +20,12 @@ function picture(c,mode,exportTile=false){const [bg,m,i,f]=c,uid='r'+(++seq),k=m
  const diamond='<path d="M0 -15L12 0 0 15 -12 0Z" fill="'+m+'"/><path d="M0 -9L7 0 0 9 -7 0Z" fill="'+i+'"/><circle r="2" fill="'+f+'"/>';
  const motif=[eye,'<path d="M-7 17Q4 7 1 -6M-2 11Q-13 12 -13 3Q-5 3 -2 11M1 6Q9 7 13 -3Q4 -2 1 6" fill="'+i+'" stroke="'+m+'"/><g transform="translate(1 -6)">'+petals(7,m)+'<circle r="3" fill="'+f+'"/></g>', '<path d="M0 -18l3 6 3 -1 2 7 4 1 2 5 -4 3 -2 7 -3 -1 -5 9 -4 -8 -3 1 -2 -7 -4 -4 4 -5 2 -7 3 1Z" fill="'+m+'"/><path d="M0 -8l5 8 -5 8 -5 -8Z" fill="'+i+'"/>',diamond,eye+ '<path d="M0 -22L18 0 0 24 -18 0Z" fill="none" stroke="'+i+'"/>',Array.from({length:8},(_,a)=>'<circle cy="-9" r="2.1" fill="'+m+'" transform="rotate('+45*a+')"/>').join('')+'<circle r="2.5" fill="'+f+'"/>',petals(8,m)+petals(6,i).replaceAll('cy="-4.5"','cy="-2"')+'<circle r="3" fill="'+f+'"/>',petals(7,f)+'<circle r="3" fill="'+i+'"/>'][styles.indexOf(style)];
  let lattice='';if(style==='Geometric')lattice='<path d="M-40 40L40 -40M0 80L80 0M40 120L120 40M-40 40L40 120M0 0L80 80M40 -40L120 40" fill="none" stroke="'+i+'" stroke-width="1.5"/>';if(style==='Mughal jaal')lattice='<path d="M-40 40Q0 34 0 0Q0 34 40 40Q80 46 80 80M0 80Q0 46 40 40Q80 34 80 0" fill="none" stroke="'+m+'" stroke-width="1.4"/>';
- const marks=[[20,20,motif],[60,60,motif],[60,20,blossom],[20,60,blossom]].map(([x,y,a])=>'<g transform="translate('+x+' '+y+')">'+a+'</g>').join('');
- const vb=k?'0 0 300 360':exportTile?'0 0 '+u+' '+u:'0 0 320 230';
+ const marks=[[20,20,motif],[60,60,motif],[60,20,blossom],[20,60,blossom]].map(([x,y,a])=>'<g transform="translate('+x+' ' +y+') scale('+1/spacing+')">'+a+'</g>').join('');
+ const pitch=u*spacing;
+ const layout=style==='My PNG'?[20,60].map((v,j)=>'<image href="'+png+'" x="'+(v-17/spacing)+'" y="'+(v-17/spacing)+'" width="'+34/spacing+'" height="'+34/spacing+'" preserveAspectRatio="xMidYMid meet"/>').join(''):lattice+marks;
+ const vb=k?'0 0 300 360':exportTile?'0 0 '+pitch+' '+pitch:'0 0 320 230';
  const trim='fill="none" stroke="'+m+'"';const garment='<path d="M123 18Q149 43 177 18L210 30L286 118L256 138L218 89L237 330Q151 345 63 330L82 89L44 138L14 118L88 30Z" fill="url(#'+uid+')" stroke="'+i+'" stroke-width="1.6"/><g '+trim+'><path d="M123 18Q151 55 177 18M147 36V117" stroke-width="6"/><path d="M18 113L48 132M252 132L282 113M64 327Q150 342 236 327" stroke-width="9"/><path d="M66 317Q151 332 235 317M66 313Q151 328 234 313" stroke-width="2"/></g>'+[52,72,92,112].map(y=>'<circle cx="151" cy="'+y+'" r="2.5" fill="'+i+'"/>').join('');
- return '<svg xmlns="http://www.w3.org/2000/svg" class="'+(k?'kurti':'swatch')+'" viewBox="'+vb+'" aria-label="'+mode+' preview"><defs><pattern id="'+uid+'" width="'+u+'" height="'+u+'" patternUnits="userSpaceOnUse" viewBox="0 0 80 80"><rect width="80" height="80" fill="'+bg+'"/>'+lattice+marks+'</pattern></defs>'+(k?garment:'<rect width="100%" height="100%" fill="url(#'+uid+')"/>')+'</svg>'}
+ return '<svg xmlns="http://www.w3.org/2000/svg" class="'+(k?'kurti':'swatch')+'" viewBox="'+vb+'" aria-label="'+mode+' preview"><defs><pattern id="'+uid+'" width="'+pitch+'" height="'+pitch+'" patternUnits="userSpaceOnUse" viewBox="0 0 80 80"><rect width="80" height="80" fill="'+bg+'"/>'+layout+'</pattern></defs>'+(k?garment:'<rect width="100%" height="100%" fill="url(#'+uid+')"/>')+'</svg>'}
 function hsl(h,s,l){h=(h+720)%360;const a=s*Math.min(l,1-l);return '#'+[0,8,4].map(n=>{const k=(n+h/30)%12;return Math.round(255*(l-a*Math.max(-1,Math.min(k-3,9-k,1)))).toString(16).padStart(2,'0')}).join('').toUpperCase()}
 function light(c){return c.slice(1).match(/../g).map(x=>parseInt(x,16)/255).map(x=>x<=.04045?x/12.92:((x+.055)/1.055)**2.4).reduce((v,x,j)=>v+x*[.2126,.7152,.0722][j],0)}
 function matches(){const [r,g,b]=ground.slice(1).match(/../g).map(x=>parseInt(x,16)/255),mx=Math.max(r,g,b),d=mx-Math.min(r,g,b),h=d?60*(mx===r?(g-b)/d:mx===g?2+(b-r)/d:4+(r-g)/d):0,dark=light(ground)<.23;
@@ -34,7 +39,125 @@ function persist(){try{localStorage.setItem('rang-colour-match-v2',JSON.stringif
 function card(p){const e=document.createElement('article');e.className='card';e.innerHTML='<div class="art">'+picture(p.c,view)+'</div><div class="content"><div class="title"><h2></h2></div><div class="meta"></div><div class="colours"></div><div class="foot"></div></div>';e.querySelector('h2').textContent=p.name;
  const isSaved=saved.some(x=>signature(x)===signature(p));e.querySelector('.title').append(button(isSaved?'♥ Saved':'♡ Save',()=>{if(isSaved)saved=saved.filter(x=>signature(x)!==signature(p));else saved.push({...p,id:'s'+Date.now(),c:[...p.c]});persist();render()}));
  const a=light(p.c[0]),b=light(p.c[1]),contrast=(Math.max(a,b)+.05)/(Math.min(a,b)+.05);e.querySelector('.meta').textContent='Motif contrast '+contrast.toFixed(2)+':1 · '+(contrast>=7?'High':contrast>=4.5?'Good':contrast>=3?'Medium':'Low');
- p.c.forEach((hex,j)=>{const wrap=document.createElement('div');wrap.className='colour';const input=document.createElement('input');input.type='color';input.value=hex;input.setAttribute('aria-label','Edit '+roles[j]+' in '+p.name);input.onchange=()=>{let c=[...p.c];c[j]=input.value.toUpperCase();if(tab==='Saved'){p.c=c;persist()}else edits.set(p.id,c);render()};const label=document.createElement('div'),role=document.createElement('small');role.textContent=roles[j];label.append(button(hex,()=>copy(hex)),role);wrap.append(input,label);e.querySelector('.colours').append(wrap)});e.querySelector('.foot').append(button('Copy all',()=>copy(p.c.join('  '))),button('Download PNG',()=>download(p)));return e}
-function render(){const tabs=['Match','Ready-made sets','Saved ('+saved.length+')'];toggle('tabs',tabs,tab==='Saved'?tabs[2]:tab,v=>{tab=v.startsWith('Saved')?'Saved':v;render()});toggle('views',['Swatch','Kurti'],view,v=>{view=v;render()});toggle('sizes',['Small','Medium','Large'],size,v=>{size=v;render()});toggle('moods',['Most used','Light','Bright','Dusty','Dark','Festive'],mood,v=>{mood=v;render()});$('moods').hidden=tab!=='Ready-made sets';$('ground').hidden=tab!=='Match';$('hex').value=$('picker').value=ground;for(const b of $('quick').children)b.classList.toggle('current',b.title===ground);let items=tab==='Saved'?saved:tab==='Match'?matches():catalogue.filter(s=>mood==='Most used'||mood===s[1]).map(s=>({id:s[0],name:s[0],c:s[2].split(' ').map(x=>'#'+x)}));$('results').replaceChildren(...items.map(p=>card(tab!=='Saved'&&edits.has(p.id)?{...p,c:edits.get(p.id)}:p)));if(!items.length)$('results').textContent='Tap Save on a palette to keep it here.'}
+ p.c.forEach((hex,j)=>{const wrap=document.createElement('div');wrap.className='colour';const input=document.createElement('input');input.type='color';input.value=hex;input.setAttribute('aria-label','Edit '+roles[j]+' in '+p.name);input.onchange=()=>{let c=[...p.c];c[j]=input.value.toUpperCase();if(tab==='Saved'){p.c=c;persist()}else edits.set(p.id,c);render()};const label=document.createElement('div'),role=document.createElement('small');role.textContent=roles[j];label.append(button(hex,()=>copy(hex)),role);wrap.append(input,label);e.querySelector('.colours').append(wrap)});e.querySelector('.foot').append(button('Copy all',()=>copy(p.c.join('  '))),button('Download PNG',()=>download(p)));addCardTools(e,p);return e}
+function render(){compareBar();const tabs=['Match','Ready-made sets','Saved ('+saved.length+')'];toggle('tabs',tabs,tab==='Saved'?tabs[2]:tab,v=>{tab=v.startsWith('Saved')?'Saved':v;render()});toggle('views',['Swatch','Kurti'],view,v=>{view=v;render()});toggle('sizes',['Small','Medium','Large'],size,v=>{size=v;render()});toggle('moods',['Most used','Light','Bright','Dusty','Dark','Festive'],mood,v=>{mood=v;render()});$('moods').hidden=tab!=='Ready-made sets';$('ground').hidden=tab!=='Match';$('hex').value=$('picker').value=ground;for(const b of $('quick').children)b.classList.toggle('current',b.title===ground);let items=tab==='Saved'?saved:tab==='Match'?matches():catalogue.filter(s=>mood==='Most used'||mood===s[1]).map(s=>({id:s[0],name:s[0],c:s[2].split(' ').map(x=>'#'+x)}));$('results').replaceChildren(...items.map(p=>card(tab!=='Saved'&&edits.has(p.id)?{...p,c:edits.get(p.id)}:p)));if(!items.length)$('results').textContent='Tap Save on a palette to keep it here.'}
+let spacing = 1;
+let png = '';
+let uploadTicket = 0;
+const selections = [];
+const dialog = $('viewer');
+function closeView(){ dialog.close(); }
+function openView(title, nodes){
+  $('viewerTitle').textContent = title;
+  $('viewerBody').replaceChildren(...nodes);
+  dialog.showModal();
+}
+function figure(p, label, mode=view){
+  const el=document.createElement('figure');
+  const art=document.createElement('div');
+  art.className='viewerArt';
+  art.innerHTML=picture(p.c,mode);
+  const caption=document.createElement('figcaption');
+  caption.textContent=label;
+  el.append(art,caption);
+  return el;
+}
+function zoomView(p){
+  const stage=document.createElement('div');
+  stage.className='zoomStage';
+  const art=figure(p,'');
+  stage.append(art);
+  const controls=document.createElement('div');
+  controls.className='viewerTools';
+  for(const level of [1,1.5,2,3]){
+    const b=button(level+'×',()=>{
+      art.style.width=(level*100)+'%';
+      for(const x of controls.children)x.setAttribute('aria-pressed',x===b);
+    });
+    b.setAttribute('aria-pressed',level===1);
+    controls.append(b);
+  }
+  openView(p.name,[controls,stage]);
+}
+function pairView(a,b,labels,action){
+  const pair=document.createElement('div');
+  pair.className='pair';
+  pair.append(figure(a,labels[0]),figure(b,labels[1]));
+  return action?[pair,action]:[pair];
+}
+function togglePalette(p){
+  const key=signature(p);
+  const n=selections.findIndex(x=>signature(x)===key);
+  if(n>=0) selections.splice(n,1);
+  else if(selections.length===2){ note('Remove a selected palette first'); return; }
+  else selections.push({...p,c:p.c.slice()});
+  render();
+}
+function compareBar(){
+  const bar=$('compareBar');
+  bar.hidden=!selections.length;
+  bar.replaceChildren();
+  if(!selections.length)return;
+  const status=document.createElement('span');
+  status.textContent=selections.length===1?'Select one more palette':'2 palettes selected';
+  const compare=button('Compare',()=>openView('Compare palettes',pairView(...selections,selections.map(x=>x.name))));
+  compare.disabled=selections.length!==2;
+  bar.append(status,compare,button('Clear',()=>{selections.length=0;render()}));
+}
+function ratio(a,b){
+  const v=light(a),w=light(b);
+  return (Math.max(v,w)+.05)/(Math.min(v,w)+.05);
+}
+function stronger(c){
+  const target=ratio(c[0],'#000000')>=ratio(c[0],'#FFFFFF')?0:255;
+  const rgb=c[1].slice(1).match(/../g).map(x=>parseInt(x,16));
+  for(let step=1;step<=100;step++){
+    const shade='#'+rgb.map(x=>Math.round(x+(target-x)*step/100).toString(16).padStart(2,'0')).join('').toUpperCase();
+    if(ratio(c[0],shade)>=4.5)return [c[0],shade,c[2],c[3]];
+  }
+  return c.slice();
+}
+function contrastView(p){
+  const c=stronger(p.c);
+  const labels=['Before · '+ratio(...p.c).toFixed(2)+':1','After · '+ratio(...c).toFixed(2)+':1'];
+  const apply=button('Apply motif colour',()=>{
+    if(tab==='Saved'){p.c=c;persist()}else edits.set(p.id,c);
+    closeView();render();
+  });
+  openView('Motif contrast',pairView(p,{...p,c},labels,apply));
+}
+function addCardTools(e,p){
+  const art=e.querySelector('.art');
+  art.tabIndex=0;art.setAttribute('role','button');art.setAttribute('aria-label','Zoom '+p.name);
+  art.onclick=()=>zoomView(p);
+  art.onkeydown=event=>{if(['Enter',' '].includes(event.key)){event.preventDefault();zoomView(p)}};
+  const tools=document.createElement('div'); tools.className='viewerTools';
+  const selected=selections.some(x=>signature(x)===signature(p));
+  const choose=button(selected?'✓ Selected':'Compare',()=>togglePalette(p));
+  choose.setAttribute('aria-pressed',selected);
+  tools.append(choose,button('Full view',()=>zoomView(p)));
+  if(style!=='My PNG'&&ratio(...p.c)<4.5)tools.append(button('Improve contrast',()=>contrastView(p)));
+  e.querySelector('.content').append(tools);
+  if(style==='My PNG')e.querySelector('.meta').textContent='Original PNG colours';
+}
+$('viewerClose').onclick=closeView;
+$('space').oninput=e=>{spacing=Number(e.target.value)/100;$('spaceLabel').textContent=e.target.value+'%';render()};
+$('upload').onchange=async e=>{
+  const file=e.target.files[0];if(!file)return;
+  const ticket=++uploadTicket;
+  try{
+    const header=new Uint8Array(await file.slice(0,24).arrayBuffer());
+    if(![137,80,78,71,13,10,26,10].every((x,j)=>header[j]===x))throw Error('Choose a PNG image');
+    const reader=new FileReader();
+    const data=await new Promise((resolve,reject)=>{reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(file)});
+    const image=new Image();image.src=data;await image.decode();
+    if(ticket!==uploadTicket)return;
+    png=data;style='My PNG';
+    if(!Array.from($('style').options).some(o=>o.value===style))$('style').add(new Option(style,style));
+    $('style').value=style;$('uploadName').textContent=file.name;render();
+  }catch(err){if(ticket===uploadTicket)note(err.message==='Choose a PNG image'?err.message:'This PNG could not be opened')}
+  finally{if(ticket===uploadTicket)e.target.value=''}
+};
+
 $('style').replaceChildren(...styles.map(s=>new Option(s,s)));$('style').onchange=e=>{style=e.target.value;render()};$('hex').onchange=e=>setGround('#'+e.target.value.trim().replace(/^#/,''));$('hex').onkeydown=e=>{if(e.key==='Enter')e.target.blur()};$('picker').onchange=e=>setGround(e.target.value);quick.forEach(c=>{const b=button('',()=>setGround(c));b.title=c;b.setAttribute('aria-label','Use '+c);b.style.background=c;$('quick').append(b)});render()
 </script></html>
