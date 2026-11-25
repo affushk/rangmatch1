@@ -38,6 +38,49 @@ const extraFamilies={
   Jewel:['563969 EBC291 94B39A','144B50 F5B0BC B7D29A','77283F F6CCA2 ACC398','263B73 E5B1D4 A1C5AB','6C375C F9B58F A9CDA7','254C40 E5C6F0 B4C68F','474076 F9D7AD 98C7BA','813A49 F0C8CB A4BD8C'],
   Pastel:['F5DADE 984F69 56684C','D3EAE4 A65059 506C59','E9DDF4 89557C 526A61','F7EBBE 99555D 5A7052','DDE8F4 97565E 516E67','F6D9C6 91545F 576B4F','DDE8CF 985A70 47685A','EFDEDA 895478 566C60']
 };
+const textileFamilies={
+  "Textile Classics": [
+    "223D60 E8B975 DDA395",
+    "F1DFBD 963E38 375D60",
+    "823D48 F2CD9C CDD3AA",
+    "315752 F3BFA2 E0C48E",
+    "C17B42 402C43 253F42",
+    "F2D2BD 78374E 506344",
+    "523852 E8BC8F E2C6BE",
+    "A8C7BE 723949 334B50"
+  ],
+  "Contrast": [
+    "174855 FFC390 F1DCAB",
+    "F2CF9B 274C70 833D49",
+    "542941 C7DED3 F3C87A",
+    "D5E5D1 833F64 3B5369",
+    "29355E FAD099 E5A696",
+    "F3BBAF 205451 493858",
+    "77412B B8E0DE F6DEAB",
+    "E4D4E9 425530 66354C"
+  ],
+  "Mono": [
+    "273D59 B7C8DE 829DBE",
+    "F4DCE3 873854 633044",
+    "315448 C8DFD4 94BBA9",
+    "F0DBC8 854E30 643B26",
+    "493751 DECAE4 AF90B8",
+    "DFECED 37676B 254D50",
+    "544337 EBDDCF C6AC98",
+    "EBE4CB 70643B 4D452B"
+  ],
+  "Sober": [
+    "DDD7C9 705952 495951",
+    "384D51 D5BDB0 B9C7BA",
+    "E8D4CF 76515B 506458",
+    "CACFC0 66536A 425648",
+    "594C5A DCC5C1 C5C6AF",
+    "DADFE3 586170 755956",
+    "64534A E3CCB8 CBD1C2",
+    "E8DECA 716044 57645D"
+  ]
+};
+Object.assign(extraFamilies,textileFamilies);
 for(const [name,rows] of Object.entries(extraFamilies)){
   const colours=rows.map(row=>row.split(' '));
   palettes[name]=colours.map(row=>'#'+row[0]);
@@ -134,6 +177,36 @@ function tintComposite(data,p,hit,target){
 function selectedLayer(){
   return tiffSource?.layers?.length&&el('method').value==='single'?Number(el('layerChoice').value):-1;
 }
+function motifLights(data,map,scoped){
+  const bins=new Uint32Array(32);
+  const step=Math.max(1,Math.floor(map.length/16000));
+  for(let i=0;i<map.length;i+=step){
+    if(!data[4*i+3] || (scoped?map[i]?.weight>.5:map[i]))continue;
+    bins[Math.min(31,Math.floor(luminance(key(data,4*i))*32))]++;
+  }
+  return Array.from(bins,(count,i)=>[ (i+.5)/32, Math.sqrt(count) ]).filter(pair=>pair[1]);
+}
+function fitGround(ground,lights){
+  if(!lights.length)return ground;
+  const base=parseInt(ground.slice(1),16);
+  let best=ground,high=-Infinity;
+  for(const blend of [0,-.16,.16,-.32,.32,-.48,.48]){
+    let colour=0;
+    for(const shift of [16,8,0]){
+      const c=(base>>shift)&255;
+      colour=colour*256+Math.round(c+Math.abs(blend)*((blend<0?0:255)-c));
+    }
+    const l=luminance(colour);
+    let sum=0,weight=0;
+    for(const [m,w] of lights){
+      const ratio=(Math.max(m,l)+.05)/(Math.min(m,l)+.05);
+      sum+=w*Math.min(1,Math.log(ratio)/Math.log(3.5));weight+=w;
+    }
+    const score=sum/weight-Math.abs(blend)*.22;
+    if(score>high){best=hex(colour);high=score}
+  }
+  return best;
+}
 function render(){
   const full=el('method').value==='full',family=el('mood').value;
   el('roles').hidden=!full;
@@ -151,8 +224,21 @@ function render(){
     Math.floor((i%source.width+.5)*tiffSource.w/source.width),Math.floor((Math.floor(i/source.width)+.5)*tiffSource.h/source.height),
     Number(el('pick').value),Number(el('tolerance').value))):null;
   const map=hits|| (full?roleMap(original.data,sources,Number(el('tolerance').value)):selection());
+  const adaptive=Object.prototype.hasOwnProperty.call(textileFamilies,family);
+  const detailLights=adaptive?motifLights(original.data,map,!!hits):[];
   palettes[family].forEach((ground,j)=>{
     const defaults=[ground,...companion[family][j].map(c=>'#'+c)];
+    if(adaptive){
+      const lights=detailLights.slice();
+      if(full){
+        const w=1+lights.reduce((sum,p)=>sum+p[1],0);
+        for(let i=1;i<3;i++)if(sources[i]!=null){
+          const ink=el('lock'+i).checked?sources[i]:parseInt((edits.get(editKey(j))?.[i]||defaults[i]).slice(1),16);
+          lights.push([luminance(ink),w]);
+        }
+      }
+      defaults[0]=fitGround(ground,lights);
+    }
     const targets=defaults.map((value,i)=>edits.get(editKey(j))?.[i]||value);
     const values=targets.map((c,i)=>full&&(el('lock'+i).checked||sources[i]==null)?null:parseInt(c.slice(1),16));
     const img=new ImageData(new Uint8ClampedArray(original.data),source.width,source.height);
