@@ -2,7 +2,7 @@
 <style>
 *{box-sizing:border-box}body{margin:0;background:#18171a;color:#f7f2e9;font:16px/1.5 system-ui,sans-serif}main{max-width:1250px;margin:auto;padding:24px clamp(16px,4vw,54px) 60px}header{border-bottom:1px solid #494247;padding-bottom:20px}a{color:#f6cb9b}h1,h2{font-family:Georgia,serif;font-weight:500;margin:.4em 0}h1{font-size:clamp(32px,6vw,56px)}p{margin:.4em 0 1em;color:#d5cbd0}.layout{display:grid;grid-template-columns:minmax(240px,320px) 1fr;gap:28px;margin-top:20px}aside,article,details{background:#252226;border:1px solid #51484b;border-radius:14px;padding:16px}aside{align-self:start}button,select,input{font:inherit;max-width:100%}button,select,input[type=text]{background:#383237;color:white;border:1px solid #706368;padding:8px 12px;border-radius:8px}button{cursor:pointer}button:disabled{opacity:.5}label{display:block;margin:12px 0 5px}canvas{display:block;max-width:100%}.frame{background:repeating-conic-gradient(#d5cfc7 0 25%,#ece8e1 0 50%) 0/16px 16px;display:grid;place-items:center}.frame canvas{max-height:270px;width:auto;object-fit:contain}#source{cursor:crosshair}#cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.row{display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:wrap}.row label{margin:4px 0}article{padding:10px}details{margin:14px 0}summary{cursor:pointer}#inspect{overflow:auto;max-height:420px;background:#373238}#inspect canvas{max-width:none;image-rendering:pixelated}button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #e4b583}@media(max-width:700px){.layout{grid-template-columns:1fr}.frame canvas{max-height:220px}article button{font-size:14px}}
 section{min-width:0}#board{max-width:100%;max-height:78vh;max-height:78svh;width:auto;height:auto;margin:auto}#cards[hidden],[hidden]{display:none!important}.board-tools{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap}.board-tools button[aria-pressed=true]{background:#f1c79e;color:#262124}#results{scroll-margin:10px}input[type=color]{width:56px;height:38px;vertical-align:middle} .ink{margin-right:12px;display:inline-block}
-</style><main><header><a href="index.html">Rang Studio</a><h1>Print matchings</h1><p>Try eight colourways on your own flat-colour print.</p></header><div class="layout"><aside><label for="upload">Choose JPG, PNG or TIFF</label><input id="upload" type="file" accept="image/jpeg,image/png,image/tiff,.tif,.tiff,.jpg,.jpeg,.png"><small>TIFF: uncompressed 8-bit RGB image with simple raw or RLE Photoshop pixel layers.</small><p id="status" role="status">Try the floral sample or choose your artwork.</p><div class="frame"><canvas id="source" tabindex="0" aria-label="Tap a colour in the original print"></canvas></div><label for="method">Matching mode</label><select id="method"><option value="full">Full print</option><option value="single">Single colour</option></select><div id="roles"><p>Choose a role, then tap its colour on the original print. Tick Lock to keep that colour.</p><div class="row"><button type="button" id="role0">Ground</button><label><input type="checkbox" id="lock0"> Lock ground</label></div><div class="row"><button type="button" id="role1">Flower</button><label><input type="checkbox" id="lock1"> Lock flower</label></div><div class="row"><button type="button" id="role2">Leaf</button><label><input type="checkbox" id="lock2"> Lock leaf</label></div></div><div id="single" hidden><label id="layerLabel" hidden>Change colour on layer<select id="layerChoice"></select></label><label for="pick">Colour to change</label><select id="pick"></select><p>Tap the print to pick a colour. All other colours stay locked.</p></div><label for="tolerance">Similar shades · <output id="tolValue">32</output></label><input type="range" id="tolerance" min="0" max="80" value="32"><p>Use 0 for an exact colour, or increase to include more shades.</p><div id="region" hidden><label for="area">Apply to</label><select id="area"><option value="all">Everywhere this colour appears</option><option value="one">Only the connected area I tap</option></select></div><label for="mood">Matching family</label><select id="mood"><option>Light</option><option>Dark</option><option>Bright</option></select><p><button id="make">8 matchings banao</button></p></aside><section><div id="results"><div class="board-tools"><button id="fit" aria-pressed="true">Fit all 8</button><button id="cardView" aria-pressed="false">Matching cards</button></div><canvas id="board" aria-label="All eight matching previews"></canvas><div id="cards" hidden></div></div><details><summary>Edit matching colours</summary><label for="editIndex">Choose matching</label><select id="editIndex"><option value="0">M1</option><option value="1">M2</option><option value="2">M3</option><option value="3">M4</option><option value="4">M5</option><option value="5">M6</option><option value="6">M7</option><option value="7">M8</option></select><div><label class="ink">Ground <input type="color" id="ink0"></label><label class="ink">Flower <input type="color" id="ink1"></label><label class="ink">Leaf <input type="color" id="ink2"></label></div><button id="resetInks">Reset this matching</button></details><details id="detail"><summary>Inspect matching &amp; repeat</summary><label for="which">Matching</label><select id="which"></select><label for="mode">Preview</label><select id="mode"><option>3 × 3 repeat</option><option>4× detail zoom</option></select><label><input type="checkbox" id="guides"> Show tile edges</label><p id="contrast"></p><div id="inspect"><canvas id="zoom"></canvas></div></details><label for="design">Design number for matching sheet</label><input type="text" id="design" maxlength="48" placeholder="e.g. 204"><button id="sheet">Save selected as JPG</button><div id="tiffTools" hidden><label for="tiffIndex">Full-size TIFF matching</label><select id="tiffIndex"><option value="0">M1</option><option value="1">M2</option><option value="2">M3</option><option value="3">M4</option><option value="4">M5</option><option value="5">M6</option><option value="6">M7</option><option value="7">M8</option></select> <button id="saveTiff">Download original-size TIFF</button><p role="status" id="tiffMsg"></p></div></section></div></main><script>
+#layerPanel{margin:12px 0;padding:10px;border:1px solid #66575e;border-radius:8px}#layerRows{display:grid;gap:4px;margin-top:6px}#layerRows button{text-align:left;overflow-wrap:anywhere}#layerRows button[aria-pressed=true]{border-color:#f6cb9b;color:#f6cb9b}</style><main><header><a href="index.html">Rang Studio</a><h1>Print matchings</h1><p>Try eight colourways on your own flat-colour print.</p></header><div class="layout"><aside><label for="upload">Choose JPG, PNG or TIFF</label><input id="upload" type="file" accept="image/jpeg,image/png,image/tiff,.tif,.tiff,.jpg,.jpeg,.png"><small>TIFF: uncompressed 8-bit RGB image with simple raw or RLE Photoshop pixel layers.</small><p id="status" role="status">Try the floral sample or choose your artwork.</p><div id="layerPanel" hidden><strong id="layerCount"></strong><div id="layerRows"></div><small id="layerScope" role="status"></small></div><div class="frame"><canvas id="source" tabindex="0" aria-label="Tap a colour in the original print"></canvas></div><label for="method">Matching mode</label><select id="method"><option value="full">Full print</option><option value="single">Single colour</option></select><div id="roles"><p>Choose a role, then tap its colour on the original print. Tick Lock to keep that colour.</p><div class="row"><button type="button" id="role0">Ground</button><label><input type="checkbox" id="lock0"> Lock ground</label></div><div class="row"><button type="button" id="role1">Flower</button><label><input type="checkbox" id="lock1"> Lock flower</label></div><div class="row"><button type="button" id="role2">Leaf</button><label><input type="checkbox" id="lock2"> Lock leaf</label></div></div><div id="single" hidden><label id="layerLabel" hidden>Change colour on layer<select id="layerChoice"></select></label><label for="pick">Colour to change</label><select id="pick"></select><p>Tap the print to pick a colour. All other colours stay locked.</p></div><label for="tolerance">Similar shades · <output id="tolValue">32</output></label><input type="range" id="tolerance" min="0" max="80" value="32"><p>Use 0 for an exact colour, or increase to include more shades.</p><div id="region" hidden><label for="area">Apply to</label><select id="area"><option value="all">Everywhere this colour appears</option><option value="one">Only the connected area I tap</option></select></div><label for="mood">Matching family</label><select id="mood"><option>Light</option><option>Dark</option><option>Bright</option></select><p><button id="make">8 matchings banao</button></p></aside><section><div id="results"><div class="board-tools"><button id="fit" aria-pressed="true">Fit all 8</button><button id="cardView" aria-pressed="false">Matching cards</button></div><canvas id="board" aria-label="All eight matching previews"></canvas><div id="cards" hidden></div></div><details><summary>Edit matching colours</summary><label for="editIndex">Choose matching</label><select id="editIndex"><option value="0">M1</option><option value="1">M2</option><option value="2">M3</option><option value="3">M4</option><option value="4">M5</option><option value="5">M6</option><option value="6">M7</option><option value="7">M8</option></select><div><label class="ink">Ground <input type="color" id="ink0"></label><label class="ink">Flower <input type="color" id="ink1"></label><label class="ink">Leaf <input type="color" id="ink2"></label></div><button id="resetInks">Reset this matching</button></details><details id="detail"><summary>Inspect matching &amp; repeat</summary><label for="which">Matching</label><select id="which"></select><label for="mode">Preview</label><select id="mode"><option>3 × 3 repeat</option><option>4× detail zoom</option></select><label><input type="checkbox" id="guides"> Show tile edges</label><p id="contrast"></p><div id="inspect"><canvas id="zoom"></canvas></div></details><label for="design">Design number for matching sheet</label><input type="text" id="design" maxlength="48" placeholder="e.g. 204"><button id="sheet">Save selected as JPG</button><div id="tiffTools" hidden><label for="tiffIndex">Full-size TIFF matching</label><select id="tiffIndex"><option value="0">M1</option><option value="1">M2</option><option value="2">M3</option><option value="3">M4</option><option value="4">M5</option><option value="5">M6</option><option value="6">M7</option><option value="7">M8</option></select> <button id="saveTiff">Download original-size TIFF</button><p role="status" id="tiffMsg"></p></div></section></div></main><script>
 const el=id=>document.getElementById(id),source=el('source'),ctx=source.getContext('2d',{willReadFrequently:true});
 const palettes={Light:['#EBC6BC','#F7E6BC','#D8E4CB','#CADFE5','#E4D8E9','#F2D7B1','#D1DBED','#E9E3D3'],Dark:['#35253E','#183F45','#542D42','#213251','#44372C','#324032','#383345','#642C31'],Bright:['#F09534','#DA5583','#25ADAA','#E9BA39','#769AD7','#AC77CB','#88BC58','#F07356']};
 let original,seed=0,counts=new Map(),cards=[],ticket=0;
@@ -174,6 +174,26 @@ function tintComposite(data,p,hit,target){
     data[p+i]=Math.max(0,Math.min(255,Math.round(data[p+i]+hit.weight*delta)));
   }
 }
+function showLayers(){
+  const panel=el('layerPanel'),rows=el('layerRows'),file=tiffSource;
+  panel.hidden=!file;
+  if(!file)return;
+  const list=file.inventory;
+  el('layerCount').textContent=list?.length?list.length+' Photoshop '+(list.length===1?'layer':'layers')+' · top to bottom':list?'Flat TIFF':'Layer names unavailable';
+  const scope=selectedLayer();
+  rows.replaceChildren();
+  for(let i=(list?.length||0)-1;i>=0;i--){
+    const layer=list[i],editable=!!file.layers?.length;
+    const row=document.createElement(editable?'button':'div');
+    row.textContent=(layer.name||'Unnamed layer')+(layer.section?' · group':'')+(layer.hidden?' · hidden':'')+(scope===i?' · selected':'');
+    if(editable){
+      row.type='button';row.setAttribute('aria-pressed',String(scope===i));
+      row.onclick=()=>{el('method').value='single';el('layerChoice').value=String(i);render();el('layerRows').children[list.length-1-i]?.focus()};
+    }
+    rows.append(row);
+  }
+  el('layerScope').textContent=file.layers?.length?(scope<0?'Matching applies across all layers.':'Matching applies only to '+(list[scope].name||'this layer')+'.'):file.layers===null?'Preview and flat export only.':'Matching applies to the flat image.';
+}
 function selectedLayer(){
   return tiffSource?.layers?.length&&el('method').value==='single'?Number(el('layerChoice').value):-1;
 }
@@ -217,6 +237,7 @@ function render(){
     button.setAttribute('aria-pressed',String(activeRole===i));
     button.style.borderColor=activeRole===i?'#f6cb9b':'';
   });
+  showLayers();
   const scope=selectedLayer();
   el('layerLabel').hidden=!tiffSource?.layers?.length;
   if(scope>=0){el('region').hidden=true;el('area').value='all'}
@@ -277,7 +298,7 @@ el('pick').onchange=()=>{seed=counts.get(Number(el('pick').value)).i;render()};e
 let tiffSource=null;
 const tiffHelp='Use a flattened 8-bit RGB TIFF, with no compression, interleaved pixels and no image pyramid.';
 const layerHelp='This layered TIFF requires simple uncompressed RGB pixel layers. Try the Rang Studio layer test file.';
-function readLayers(bytes,item){
+function readLayers(bytes,item,namesOnly=false){
   if(!item)return [];
   const fail=()=>{throw Error(layerHelp)};
   const block=bytes.subarray(item.start,item.start+item.n);
@@ -299,26 +320,37 @@ function readLayers(bytes,item){
   for(let i=0;i<count;i++){
     const top=coord(),left=coord(),height=coord()-top,width=coord()-left;
     const size=height*width,channels=[],n=word();
-    if(height<0||width<0||!Number.isSafeInteger(size)||n<3||n>4)fail();
+    if(height<0||width<0||!Number.isSafeInteger(size)||(!namesOnly&&(n<3||n>4)))fail();
     for(let c=0;c<n;c++){
       const id=signed(),lengthField=pos,length=long();
       channels.push({id,length,lengthField});
     }
-    if(str(4)!==sig||str(4)!==(le?'mron':'norm')||block[take(1)]!==255)fail();
-    const clipping=block[take(1)],hidden=Boolean(block[take(1)]&2);take(1);if(clipping)fail();
+    if(str(4)!==sig)fail();
+    const blend=str(4),opacity=block[take(1)];
+    if(!namesOnly&&(blend!==(le?'mron':'norm')||opacity!==255))fail();
+    const clipping=block[take(1)],hidden=Boolean(block[take(1)]&2);take(1);if(clipping&&!namesOnly)fail();
     const end=pos+4+long();
-    if(end>limit||long()!==0)fail();
+    if(end>limit)fail();
+    const maskBytes=long();if(maskBytes&&!namesOnly)fail();take(maskBytes);
     const ranges=long();take(ranges);
-    const nameSize=block[take(1)],name=str(nameSize);take((4-(nameSize+1)%4)%4);
+    const nameSize=block[take(1)];let name=str(nameSize),section=0;take((4-(nameSize+1)%4)%4);
     while(pos<end){
       if(str(4)!==sig)fail();
       const rawKey=str(4),key=le?rawKey.split('').reverse().join(''):rawKey;
-      if(!['luni','lnsr','lyid','clbl','infx','knko','lspf','lclr','shmd','fxrp'].includes(key))fail();
-      const n=long();take(n+(n%2));
+      if(!namesOnly&&!['luni','lnsr','lyid','clbl','infx','knko','lspf','lclr','shmd','fxrp'].includes(key))fail();
+      const n=long(),start=take(n+(n%2));
+      if(key==='luni'&&n>=4){
+        const chars=view.getUint32(start,le);
+        if(chars*2>n-4)fail();
+        const value=new TextDecoder(le?'utf-16le':'utf-16be').decode(block.subarray(start+4,start+4+chars*2)).replace(/\x00+$/,'');
+        if(value)name=value;
+      }
+      if((key==='lsct'||key==='lsdk')&&n>=4)section=view.getUint32(start,le);
     }
     if(pos!==end)fail();
-    layers.push({size,width,height,left,top,hidden,name,channels,planes:[]});
+    if(section!==3)layers.push({size,width,height,left,top,hidden,name,section,channels,planes:[]});
   }
+  if(namesOnly)return layers;
   const headerEnd=pos;
   for(const layer of layers){
     const ids=new Set();
@@ -380,7 +412,9 @@ function openTiff(buffer){
   let layers;
   try { layers=readLayers(bytes,tags.get(37724)); }
   catch { layers=null; }
-  return {bytes,w,h,rows,offsets,layers,tags,little};
+  let inventory=layers;
+  if(layers===null){try{inventory=readLayers(bytes,tags.get(37724),true)}catch{inventory=null}}
+  return {bytes,w,h,rows,offsets,layers,inventory,tags,little};
 }
 function previewTiff(file){
   const scale=Math.min(1,640/Math.max(file.w,file.h));
@@ -549,7 +583,7 @@ try{if(isTiff){
   el('saveTiff').textContent=input.layers===null?'Download full-size flat TIFF':(input.layers.length?'Download layered TIFF':'Download original-size TIFF');
   el('tiffTools').hidden=!tiffSource;el('tiffMsg').textContent='';
   el('status').textContent=file.name+' · Original '+input.w+' × '+input.h+' px'+(input.layers===null?' · Full-size flat TIFF available. Keep your original for editable layers.':'');return;
-}if(!['image/jpeg','image/png'].includes(file.type) && !/\.(png|jpe?g)$/i.test(file.name))throw Error();let img=new Image();img.src=url;await img.decode();if(t!==ticket)return;let scale=Math.min(1,640/Math.max(img.width,img.height));source.width=Math.max(1,Math.round(img.width*scale));source.height=Math.max(1,Math.round(img.height*scale));ctx.imageSmoothingEnabled=false;ctx.drawImage(img,0,0,source.width,source.height);tiffSource=null;init();el('tiffTools').hidden=true;el('status').textContent=file.name+' · Preview '+source.width+' × '+source.height+' px'}catch(err){if(t===ticket)el('status').textContent=isTiff?(err.message===layerHelp?layerHelp:tiffHelp):'Choose a readable JPG or PNG file.'}finally{URL.revokeObjectURL(url)}};
+}if(!['image/jpeg','image/png'].includes(file.type) && !/\.(png|jpe?g)$/i.test(file.name))throw Error();let img=new Image();img.src=url;await img.decode();if(t!==ticket)return;let scale=Math.min(1,640/Math.max(img.width,img.height));source.width=Math.max(1,Math.round(img.width*scale));source.height=Math.max(1,Math.round(img.height*scale));ctx.imageSmoothingEnabled=false;ctx.drawImage(img,0,0,source.width,source.height);tiffSource=null;init();el('tiffTools').hidden=true;el('status').textContent=file.name+' · Preview '+source.width+' × '+source.height+' px'}catch(err){if(t===ticket){tiffSource=null;showLayers();el('layerLabel').hidden=true;el('tiffTools').hidden=true;el('status').textContent=isTiff?(err.message===layerHelp?layerHelp:tiffHelp):'Choose a readable JPG or PNG file.'}}finally{URL.revokeObjectURL(url)}};
 el('sheet').onclick=()=>{let selected=cards.filter(c=>c.check.checked);if(!selected.length){el('status').textContent='Select at least one matching.';el('sheet').textContent='Select a matching first';return}el('sheet').textContent='Save selected as JPG';let s=document.createElement('canvas');drawBoard(s,selected,Math.min(2,selected.length));s.toBlob(blob=>{if(!blob)return;let a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(el('design').value.trim()||'Rang-Studio')+'-matchings.jpg';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),30000)},'image/jpeg',.93)};
 function showBoard(fit){
   el('board').hidden=!fit;el('cards').hidden=fit;
