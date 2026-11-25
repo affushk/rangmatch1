@@ -2,7 +2,7 @@
 <style>
 *{box-sizing:border-box}body{margin:0;background:#18171a;color:#f7f2e9;font:16px/1.5 system-ui,sans-serif}main{max-width:1250px;margin:auto;padding:24px clamp(16px,4vw,54px) 60px}header{border-bottom:1px solid #494247;padding-bottom:20px}a{color:#f6cb9b}h1,h2{font-family:Georgia,serif;font-weight:500;margin:.4em 0}h1{font-size:clamp(32px,6vw,56px)}p{margin:.4em 0 1em;color:#d5cbd0}.layout{display:grid;grid-template-columns:minmax(240px,320px) 1fr;gap:28px;margin-top:20px}aside,article,details{background:#252226;border:1px solid #51484b;border-radius:14px;padding:16px}aside{align-self:start}button,select,input{font:inherit;max-width:100%}button,select,input[type=text]{background:#383237;color:white;border:1px solid #706368;padding:8px 12px;border-radius:8px}button{cursor:pointer}button:disabled{opacity:.5}label{display:block;margin:12px 0 5px}canvas{display:block;max-width:100%}.frame{background:repeating-conic-gradient(#d5cfc7 0 25%,#ece8e1 0 50%) 0/16px 16px;display:grid;place-items:center}.frame canvas{max-height:270px;width:auto;object-fit:contain}#source{cursor:crosshair}#cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.row{display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:wrap}.row label{margin:4px 0}article{padding:10px}details{margin:14px 0}summary{cursor:pointer}#inspect{overflow:auto;max-height:420px;background:#373238}#inspect canvas{max-width:none;image-rendering:pixelated}button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #e4b583}@media(max-width:700px){.layout{grid-template-columns:1fr}.frame canvas{max-height:220px}article button{font-size:14px}}
 section{min-width:0}#board{max-width:100%;max-height:78vh;max-height:78svh;width:auto;height:auto;margin:auto}#cards[hidden],[hidden]{display:none!important}.board-tools{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap}.board-tools button[aria-pressed=true]{background:#f1c79e;color:#262124}#results{scroll-margin:10px}input[type=color]{width:56px;height:38px;vertical-align:middle} .ink{margin-right:12px;display:inline-block}
-#layerPanel{margin:12px 0;padding:10px;border:1px solid #66575e;border-radius:8px}#layerRows{display:grid;gap:4px;margin-top:6px}#layerRows button{text-align:left;overflow-wrap:anywhere}#layerRows button[aria-pressed=true]{border-color:#f6cb9b;color:#f6cb9b}</style><main><header><a href="index.html">Rang Studio</a><h1>Print matchings</h1><p>Try eight colourways on your own flat-colour print.</p></header><div class="layout"><aside><label for="upload">Choose JPG, PNG or TIFF</label><input id="upload" type="file" accept="image/jpeg,image/png,image/tiff,.tif,.tiff,.jpg,.jpeg,.png"><small>TIFF: uncompressed 8-bit RGB image with simple raw or RLE Photoshop pixel layers.</small><p id="status" role="status">Try the floral sample or choose your artwork.</p><div class="frame"><canvas id="source" tabindex="0" aria-label="Tap a colour in the original print"></canvas></div><label for="method">Matching mode</label><select id="method"><option value="full">Full print</option><option value="single">Single colour</option></select><div id="layerPanel" hidden><strong id="layerCount"></strong><div id="layerRows"></div><small id="layerScope" role="status"></small><div id="layerInk"><label for="layerMatch">Matching to edit</label><select id="layerMatch"></select><label for="layerTarget">New colour for selected layer</label><input type="color" id="layerTarget"></div></div><div id="roles"><p>Choose a role, then tap its colour on the original print. Tick Lock to keep that colour.</p><div class="row"><button type="button" id="role0">Ground</button><label><input type="checkbox" id="lock0"> Lock ground</label></div><div class="row"><button type="button" id="role1">Flower</button><label><input type="checkbox" id="lock1"> Lock flower</label></div><div class="row"><button type="button" id="role2">Leaf</button><label><input type="checkbox" id="lock2"> Lock leaf</label></div></div><div id="single" hidden><label id="layerLabel" hidden>Change colour on layer<select id="layerChoice"></select></label><label for="pick">Colour to change</label><select id="pick"></select><p>Tap the print to pick a colour. All other colours stay locked.</p></div><label for="tolerance">Similar shades · <output id="tolValue">0</output></label><input type="range" id="tolerance" min="0" max="80" value="0"><p>0 changes only the exact ink. Increase to include nearby shades and retain their tonal differences.</p><div id="region" hidden><label for="area">Apply to</label><select id="area"><option value="all">Everywhere this colour appears</option><option value="one">Only the connected area I tap</option></select></div><label for="mood">Matching family</label><select id="mood"><option>Light</option><option>Dark</option><option>Bright</option></select><p><button id="make">8 matchings banao</button></p></aside><section><div id="results"><div class="board-tools"><button id="fit" aria-pressed="true">Fit all 8</button><button id="cardView" aria-pressed="false">Matching cards</button></div><canvas id="board" aria-label="All eight matching previews"></canvas><div id="cards" hidden></div></div><details><summary>Edit matching colours</summary><label for="editIndex">Choose matching</label><select id="editIndex"><option value="0">M1</option><option value="1">M2</option><option value="2">M3</option><option value="3">M4</option><option value="4">M5</option><option value="5">M6</option><option value="6">M7</option><option value="7">M8</option></select><div><label class="ink">Ground <input type="color" id="ink0"></label><label class="ink">Flower <input type="color" id="ink1"></label><label class="ink">Leaf <input type="color" id="ink2"></label></div><button id="resetInks">Reset this matching</button></details><details id="detail"><summary>Inspect matching &amp; repeat</summary><label for="which">Matching</label><select id="which"></select><label for="mode">Preview</label><select id="mode"><option>3 × 3 repeat</option><option>4× detail zoom</option></select><label><input type="checkbox" id="guides"> Show tile edges</label><p id="contrast"></p><div id="inspect"><canvas id="zoom"></canvas></div></details><label for="design">Design number for matching sheet</label><input type="text" id="design" maxlength="48" placeholder="e.g. 204"><button id="sheet">Save selected as JPG</button><div id="tiffTools" hidden><label for="tiffIndex">Full-size TIFF matching</label><select id="tiffIndex"><option value="0">M1</option><option value="1">M2</option><option value="2">M3</option><option value="3">M4</option><option value="4">M5</option><option value="5">M6</option><option value="6">M7</option><option value="7">M8</option></select> <button id="saveTiff">Download original-size TIFF</button><p role="status" id="tiffMsg"></p></div></section></div></main><script>
+#layerPanel{margin:12px 0;padding:10px;border:1px solid #66575e;border-radius:8px}#layerRows{display:grid;gap:4px;margin-top:6px}#layerRows button{text-align:left;overflow-wrap:anywhere}#layerRows button[aria-pressed=true]{border-color:#f6cb9b;color:#f6cb9b}</style><main><header><a href="index.html">Rang Studio</a><h1>Print matchings</h1><p>Try eight colourways on your own flat-colour print.</p></header><div class="layout"><aside><label for="upload">Choose JPG, PNG or TIFF</label><input id="upload" type="file" accept="image/jpeg,image/png,image/tiff,.tif,.tiff,.jpg,.jpeg,.png"><small>8-bit and 16-bit RGB TIFF. Simple raw and RLE Photoshop pixel layers are editable at both depths.</small><p id="status" role="status">Try the floral sample or choose your artwork.</p><div class="frame"><canvas id="source" tabindex="0" aria-label="Tap a colour in the original print"></canvas></div><label for="method">Matching mode</label><select id="method"><option value="full">Full print</option><option value="single">Single colour</option></select><div id="layerPanel" hidden><strong id="layerCount"></strong><div id="layerRows"></div><small id="layerScope" role="status"></small><div id="layerInk"><label for="layerMatch">Matching to edit</label><select id="layerMatch"></select><label for="layerTarget">New colour for selected layer</label><input type="color" id="layerTarget"></div></div><div id="roles"><p>Choose a role, then tap its colour on the original print. Tick Lock to keep that colour.</p><div class="row"><button type="button" id="role0">Ground</button><label><input type="checkbox" id="lock0"> Lock ground</label></div><div class="row"><button type="button" id="role1">Flower</button><label><input type="checkbox" id="lock1"> Lock flower</label></div><div class="row"><button type="button" id="role2">Leaf</button><label><input type="checkbox" id="lock2"> Lock leaf</label></div></div><div id="single" hidden><label id="layerLabel" hidden>Change colour on layer<select id="layerChoice"></select></label><label for="pick">Colour to change</label><select id="pick"></select><p>Tap the print to pick a colour. All other colours stay locked.</p></div><label for="tolerance">Similar shades · <output id="tolValue">0</output></label><input type="range" id="tolerance" min="0" max="80" value="0"><p>0 changes only the exact ink. Increase to include nearby shades and retain their tonal differences.</p><div id="region" hidden><label for="area">Apply to</label><select id="area"><option value="all">Everywhere this colour appears</option><option value="one">Only the connected area I tap</option></select></div><label for="mood">Matching family</label><select id="mood"><option>Light</option><option>Dark</option><option>Bright</option></select><p><button id="make">8 matchings banao</button></p></aside><section><div id="results"><div class="board-tools"><button id="fit" aria-pressed="true">Fit all 8</button><button id="cardView" aria-pressed="false">Matching cards</button></div><canvas id="board" aria-label="All eight matching previews"></canvas><div id="cards" hidden></div></div><details><summary>Edit matching colours</summary><label for="editIndex">Choose matching</label><select id="editIndex"><option value="0">M1</option><option value="1">M2</option><option value="2">M3</option><option value="3">M4</option><option value="4">M5</option><option value="5">M6</option><option value="6">M7</option><option value="7">M8</option></select><div><label class="ink">Ground <input type="color" id="ink0"></label><label class="ink">Flower <input type="color" id="ink1"></label><label class="ink">Leaf <input type="color" id="ink2"></label></div><button id="resetInks">Reset this matching</button></details><details id="detail"><summary>Inspect matching &amp; repeat</summary><label for="which">Matching</label><select id="which"></select><label for="mode">Preview</label><select id="mode"><option>3 × 3 repeat</option><option>4× detail zoom</option></select><label><input type="checkbox" id="guides"> Show tile edges</label><p id="contrast"></p><div id="inspect"><canvas id="zoom"></canvas></div></details><label for="design">Design number for matching sheet</label><input type="text" id="design" maxlength="48" placeholder="e.g. 204"><button id="sheet">Save selected as JPG</button><div id="tiffTools" hidden><label for="tiffIndex">Full-size TIFF matching</label><select id="tiffIndex"><option value="0">M1</option><option value="1">M2</option><option value="2">M3</option><option value="3">M4</option><option value="4">M5</option><option value="5">M6</option><option value="6">M7</option><option value="7">M8</option></select> <button id="saveTiff">Download original-size TIFF</button><p role="status" id="tiffMsg"></p></div></section></div></main><script>
 const el=id=>document.getElementById(id),source=el('source'),ctx=source.getContext('2d',{willReadFrequently:true});
 const palettes={Light:['#EBC6BC','#F7E6BC','#D8E4CB','#CADFE5','#E4D8E9','#F2D7B1','#D1DBED','#E9E3D3'],Dark:['#35253E','#183F45','#542D42','#213251','#44372C','#324032','#383345','#642C31'],Bright:['#F09534','#DA5583','#25ADAA','#E9BA39','#769AD7','#AC77CB','#88BC58','#F07356']};
 let original,seed=0,counts=new Map(),cards=[],ticket=0;
@@ -155,13 +155,14 @@ function layerPixel(layer,x,y){
 function coverage(file,layer,p){
   if(p<0||layer.hidden)return 0;
   const alpha=layer.planes[-1];
-  return alpha===undefined?1:file.bytes[alpha+p]/255;
+  if(alpha===undefined)return 1;
+  return file.depth===16?nativeLayerValue(file.bytes,alpha,p)/65535:file.bytes[alpha+p]/255;
 }
 function scopedColour(file,index,x,y,sourceColour,tolerance){
   const layer=file.layers[index],p=layerPixel(layer,x,y);
   if(p<0)return null;
   const data=file.bytes,[r,g,b]=layer.planes;
-  const colour=(data[r+p]<<16)|(data[g+p]<<8)|data[b+p];
+  const colour=file.depth===16?layerColour(file,layer,p):(data[r+p]<<16)|(data[g+p]<<8)|data[b+p];
   if(distance(colour,sourceColour)>tolerance)return null;
   let weight=coverage(file,layer,p);
   for(let i=index+1;i<file.layers.length&&weight;i++){
@@ -209,7 +210,16 @@ function showLayers(){
   }
   el('layerScope').textContent=file.layers?.length?(scope<0?'Full print uses all layers. Select a layer above to edit its colour.':'Matching applies only to '+(list[scope].name||'this layer')+'.'):file.layers===null?'Preview and flat export only.':'Matching applies to the flat image.';
 }
+function nativeLayerValue(bytes,plane,p){
+  const i=plane+2*p;
+  return bytes[i]*256+bytes[i+1];
+}
 function layerColour(file,layer,p){
+  if(file.depth===16){
+    let colour=0;
+    for(let c=0;c<3;c++)colour=colour*256+Math.round(nativeLayerValue(file.bytes,layer.planes[c],p)/257);
+    return colour;
+  }
   return layer.planes.slice(0,3).reduce((rgb,offset)=>(rgb<<8)|file.bytes[offset+p],0);
 }
 function activateLayer(index){
@@ -337,9 +347,9 @@ source.onclick=e=>{let r=source.getBoundingClientRect();let i=Math.floor((e.clie
 el('tolerance').oninput=()=>{el('tolValue').value=el('tolerance').value;render()};
 el('pick').onchange=()=>{seed=counts.get(Number(el('pick').value))?.i??seed;render()};el('area').onchange=el('mood').onchange=render;el('which').onchange=el('mode').onchange=el('guides').onchange=el('detail').ontoggle=inspect;
 let tiffSource=null;
-const tiffHelp='Use a flattened 8-bit RGB TIFF, with no compression, interleaved pixels and no image pyramid.';
+const tiffHelp='Use an 8-bit or 16-bit interleaved RGB TIFF with strips. Supported image compression: None, LZW, ZIP or PackBits.';
 const layerHelp='This layered TIFF requires simple uncompressed RGB pixel layers. Try the Rang Studio layer test file.';
-function readLayers(bytes,item,namesOnly=false){
+function readLayers(bytes,item,namesOnly=false,depth=8){
   if(!item)return [];
   const fail=()=>{throw Error(layerHelp)};
   const block=bytes.subarray(item.start,item.start+item.n);
@@ -352,7 +362,7 @@ function readLayers(bytes,item,namesOnly=false){
   if(!le&&sig!=='8BIM')fail();
   const word=()=>view.getUint16(take(2),le),signed=()=>view.getInt16(take(2),le);
   const long=()=>view.getUint32(take(4),le),coord=()=>view.getInt32(take(4),le);
-  if(str(4)!==(le?'ryaL':'Layr'))fail();
+  const blockKey=str(4),expected=depth===16?'Lr16':'Layr';if((le?blockKey.split('').reverse().join(''):blockKey)!==expected)fail();
   const length=long();
   if(length>limit-pos)fail();
   limit=pos+length;
@@ -400,7 +410,7 @@ function readLayers(bytes,item,namesOnly=false){
       ids.add(c.id);
       c.compression=word();c.start=take(c.length-2);
       if(c.compression===0){
-        if(c.length!==layer.size+2)fail();
+        if(c.length!==layer.size*(depth/8)+2)fail();
         layer.planes[c.id]=item.start+c.start;
       }else if(c.compression!==1||c.length<2+2*layer.height)fail();
     }
@@ -410,6 +420,101 @@ function readLayers(bytes,item,namesOnly=false){
   layers.layout={headerEnd,tailStart:Math.min(block.length,Math.ceil(limit/4)*4),le,item};
   return layers;
 }
+function unpackLzw(input,size){
+  const out=new Uint8Array(size),prefix=new Uint16Array(4096),suffix=new Uint8Array(4096),stack=new Uint8Array(4097);
+  let bit=0,width=9,next=258,previous=-1,written=0,first=0;
+  while(bit+width<=input.length*8){
+    let code=0;
+    for(let i=0;i<width;i++,bit++)code=code*2+((input[bit>>3]>>(7-bit%8))&1);
+    if(code===256){width=9;next=258;previous=-1;continue}
+    if(code===257)break;
+    const current=code;
+    let n=0;
+    if(code===next&&previous>=0){stack[n++]=first;code=previous}
+    if(code>=next)throw Error(tiffHelp);
+    while(code>=258){stack[n++]=suffix[code];code=prefix[code]}
+    first=code;stack[n++]=first;
+    if(written+n>size)throw Error(tiffHelp);
+    while(n)out[written++]=stack[--n];
+    if(previous>=0&&next<4096){
+      prefix[next]=previous;suffix[next++]=first;
+      if(width<12&&next===(1<<width)-1)width++;
+    }
+    previous=current;
+  }
+  if(written!==size)throw Error(tiffHelp);
+  return out;
+}
+async function unpackStrip(input,compression,size){
+  if(compression===5)return unpackLzw(input,size);
+  const out=new Uint8Array(size);
+  let n=0;
+  if(compression===32773){
+    for(let p=0;p<input.length;){
+      const code=input[p++];
+      if(code===128)continue;
+      const count=code<128?code+1:257-code;
+      if(n+count>size||p+(code<128?count:1)>input.length)throw Error(tiffHelp);
+      if(code<128){out.set(input.subarray(p,p+count),n);p+=count}else out.fill(input[p++],n,n+count);
+      n+=count;
+    }
+  }else{
+    const reader=new Blob([input]).stream().pipeThrough(new DecompressionStream('deflate')).getReader();
+    while(true){
+      const {done,value}=await reader.read();
+      if(done)break;
+      if(n+value.length>size){await reader.cancel();throw Error(tiffHelp)}
+      out.set(value,n);n+=value.length;
+    }
+  }
+  if(n!==size)throw Error(tiffHelp);
+  return out;
+}
+async function loadTiff(buffer){
+  const v=new DataView(buffer),little=v.getUint16(0)===0x4949;
+  const u16=p=>v.getUint16(p,little),u32=p=>v.getUint32(p,little);
+  if(u16(2)!==42)throw Error(tiffHelp);
+  const dir=u32(4),count=u16(dir),entries=new Map();
+  for(let i=0;i<count;i++){const p=dir+2+12*i;entries.set(u16(p),p)}
+  function values(tag,defaults=[]){
+    const p=entries.get(tag);if(p===undefined)return defaults;
+    const type=u16(p+2),n=u32(p+4),step=type===3?2:4;
+    if(![3,4].includes(type)||n>1000000)throw Error(tiffHelp);
+    const start=n*step<=4?p+8:u32(p+8);
+    return Array.from({length:n},(_,i)=>step===2?u16(start+2*i):u32(start+4*i));
+  }
+  const compression=values(259,[1])[0];
+  if(![5,8,32946,32773].includes(compression))return openTiff(buffer);
+  const [w]=values(256),[h]=values(257),[rows]=values(278,[h]),bits=values(258),[predictor]=values(317,[1]);
+  const offsets=values(273),sizes=values(279),step=bits[0]/8;
+  if(!w||!h||!rows||![1,2].includes(step)||bits.length!==3||bits.some(b=>b!==step*8)||values(277)[0]!==3||values(262)[0]!==2||values(284,[1])[0]!==1||![1,2].includes(predictor)||offsets.length!==Math.ceil(h/rows)||offsets.length!==sizes.length)throw Error(tiffHelp);
+  const table=Math.ceil(buffer.byteLength/4)*4,pixels=table+8*offsets.length;
+  if(pixels+w*h*3*step>=2**32)throw Error(tiffHelp);
+  const out=new Uint8Array(pixels+w*h*3*step),bytes=new Uint8Array(buffer),d=new DataView(out.buffer);
+  out.set(bytes);
+  let dest=pixels;
+  for(let i=0;i<offsets.length;i++){
+    const size=w*Math.min(rows,h-i*rows)*3*step;
+    if(offsets[i]+sizes[i]>bytes.length)throw Error(tiffHelp);
+    const strip=await unpackStrip(bytes.subarray(offsets[i],offsets[i]+sizes[i]),compression,size);
+    if(predictor===2){
+      const dv=new DataView(strip.buffer);
+      for(let row=0;row<size;row+=w*3*step)for(let p=row+3*step;p<row+w*3*step;p+=step){
+        if(step===1)strip[p]+=strip[p-3];else dv.setUint16(p,dv.getUint16(p,little)+dv.getUint16(p-6,little),little);
+      }
+    }
+    out.set(strip,dest);
+    d.setUint32(table+4*i,dest,little);d.setUint32(table+4*(offsets.length+i),size,little);dest+=size;
+  }
+  for(const [tag,start] of [[273,table],[279,table+4*offsets.length]]){
+    const entry=entries.get(tag);d.setUint16(entry+2,4,little);d.setUint32(entry+8,offsets.length===1?d.getUint32(start,little):start,little);
+  }
+  for(const tag of [259,317])if(entries.has(tag)){
+    const entry=entries.get(tag);d.setUint16(entry+2,3,little);d.setUint32(entry+8,0,little);d.setUint16(entry+8,1,little);
+  }
+  return openTiff(out.buffer);
+}
+
 function openTiff(buffer){
   const bytes=new Uint8Array(buffer),view=new DataView(buffer);
   const order=view.getUint16(0),little=order===0x4949;
@@ -439,40 +544,40 @@ function openTiff(buffer){
   const bits=values(258);
   if(!w||!h||!rows||first(259,1)!==1||first(262)!==2||first(277)!==3||
      first(284,1)!==1||first(274,1)!==1||first(317,1)!==1||first(266,1)!==1||
-     bits.length!==3||bits.some(x=>x!==8)||values(339,[1]).some(x=>x!==1)||
+     bits.length!==3||(![8,16].includes(bits[0])||bits.some(x=>x!==bits[0]))||values(339,[1]).some(x=>x!==1)||
      [322,330].some(tag=>tags.has(tag)))throw Error(tiffHelp);
   const offsets=values(273),lengths=values(279);
   if(offsets.length!==Math.ceil(h/rows)||offsets.length!==lengths.length)throw Error(tiffHelp);
   offsets.forEach((offset,i)=>{
-    const size=Math.min(rows,h-i*rows)*w*3;
+    const size=Math.min(rows,h-i*rows)*w*3*(bits[0]/8);
     if(lengths[i]!==size||offset+size>bytes.length)throw Error(tiffHelp);
     reserved.push([offset,offset+size]);
   });
   reserved.sort((a,b)=>a[0]-b[0]);
   for(let i=1;i<reserved.length;i++)if(reserved[i][0]<reserved[i-1][1])throw Error(tiffHelp);
   let layers;
-  try { layers=readLayers(bytes,tags.get(37724)); }
+  try { layers=readLayers(bytes,tags.get(37724),false,bits[0]); }
   catch { layers=null; }
   let inventory=layers;
-  if(layers===null){try{inventory=readLayers(bytes,tags.get(37724),true)}catch{inventory=null}}
-  return {bytes,w,h,rows,offsets,layers,inventory,tags,little};
+  if(layers===null){try{inventory=readLayers(bytes,tags.get(37724),true,bits[0])}catch{inventory=null}}
+  return {bytes,w,h,rows,offsets,layers,inventory,tags,little,depth:bits[0]};
 }
 function previewTiff(file){
   const scale=Math.min(1,640/Math.max(file.w,file.h));
   source.width=Math.max(1,Math.round(file.w*scale));source.height=Math.max(1,Math.round(file.h*scale));
-  const img=ctx.createImageData(source.width,source.height);
+  const img=ctx.createImageData(source.width,source.height),step=file.depth/8,view=new DataView(file.bytes.buffer);
   for(let y=0;y<source.height;y++){
     const sy=Math.floor((y+.5)*file.h/source.height);
-    const row=file.offsets[Math.floor(sy/file.rows)]+(sy%file.rows)*file.w*3;
+    const row=file.offsets[Math.floor(sy/file.rows)]+(sy%file.rows)*file.w*3*step;
     for(let x=0;x<source.width;x++){
-      const pos=row+3*Math.floor((x+.5)*file.w/source.width),i=(y*source.width+x)*4;
-      img.data[i]=file.bytes[pos];img.data[i+1]=file.bytes[pos+1];img.data[i+2]=file.bytes[pos+2];img.data[i+3]=255;
+      const pos=row+3*step*Math.floor((x+.5)*file.w/source.width),i=(y*source.width+x)*4;
+      for(let c=0;c<3;c++)img.data[i+c]=step===1?file.bytes[pos+c]:Math.round(view.getUint16(pos+2*c,file.little)/257);img.data[i+3]=255;
     }
   }
   ctx.putImageData(img,0,0);
 }
 function flatMatchingSource(file){
-  const {w,h,little}=file;
+  const {w,h,little,depth}=file,step=depth/8;
   const sizes={1:1,2:1,3:2,4:4,5:8,7:1};
   const entries=[];
   const numeric=(tag,type,values)=>{
@@ -480,16 +585,16 @@ function flatMatchingSource(file){
     values.forEach((v,i)=>type===3?view.setUint16(i*2,v,little):view.setUint32(i*4,v,little));
     entries.push({tag,type,n:values.length,data});
   };
-  numeric(256,4,[w]);numeric(257,4,[h]);numeric(258,3,[8,8,8]);
+  numeric(256,4,[w]);numeric(257,4,[h]);numeric(258,3,[depth,depth,depth]);
   numeric(259,3,[1]);numeric(262,3,[2]);numeric(273,4,[0]);
-  numeric(277,3,[3]);numeric(278,4,[h]);numeric(279,4,[w*h*3]);
+  numeric(277,3,[3]);numeric(278,4,[h]);numeric(279,4,[w*h*3*step]);
   for(const tag of [282,283,296,34675]){
     const e=file.tags.get(tag);
     if(e && sizes[e.type])entries.push({tag,type:e.type,n:e.n,data:file.bytes.subarray(e.start,e.start+sizes[e.type]*e.n)});
   }
   let cursor=8+2+entries.length*12+4;
   for(const e of entries)if(e.data.length>4){e.offset=cursor;cursor+=e.data.length+(e.data.length%2)}
-  const pixels=cursor,bytes=new Uint8Array(pixels+w*h*3),v=new DataView(bytes.buffer);
+  const pixels=cursor,bytes=new Uint8Array(pixels+w*h*3*step),v=new DataView(bytes.buffer);
   v.setUint16(0,little?0x4949:0x4d4d);v.setUint16(2,42,little);v.setUint32(4,8,little);
   v.setUint16(8,entries.length,little);
   entries.forEach((e,i)=>{
@@ -499,16 +604,17 @@ function flatMatchingSource(file){
     else bytes.set(e.data,p+8);
   });
   file.offsets.forEach((offset,i)=>{
-    const y=i*file.rows,length=Math.min(file.rows,h-y)*w*3;
-    bytes.set(file.bytes.subarray(offset,offset+length),pixels+y*w*3);
+    const y=i*file.rows,length=Math.min(file.rows,h-y)*w*3*step;
+    bytes.set(file.bytes.subarray(offset,offset+length),pixels+y*w*3*step);
   });
-  return {bytes,w,h,offsets:[pixels],rows:h,layers:[]};
+  return {bytes,w,h,offsets:[pixels],rows:h,layers:[],little,depth};
 }
 function expandLayerChannels(file){
+  const step=file.depth/8;
   const {headerEnd,tailStart,le,item}=file.layers.layout;
   const block=file.bytes.subarray(item.start,item.start+item.n);
   let blockEnd=headerEnd;
-  for(const layer of file.layers)blockEnd+=(layer.size+2)*layer.channels.length;
+  for(const layer of file.layers)blockEnd+=(layer.size*step+2)*layer.channels.length;
   const padded=Math.ceil(blockEnd/4)*4,offset=Math.ceil(file.bytes.length/4)*4;
   const blockSize=padded+block.length-tailStart;
   const out=new Uint8Array(offset+blockSize);
@@ -520,11 +626,11 @@ function expandLayerChannels(file){
   let dest=offset+headerEnd;
   for(const layer of file.layers){
     for(const c of layer.channels){
-      v.setUint32(offset+c.lengthField,layer.size+2,le);dest+=2;
-      if(c.compression===0){out.set(block.subarray(c.start,c.start+layer.size),dest);dest+=layer.size;continue}
+      v.setUint32(offset+c.lengthField,layer.size*step+2,le);dest+=2;
+      if(c.compression===0){out.set(block.subarray(c.start,c.start+layer.size*step),dest);dest+=layer.size*step;continue}
       let p=c.start+2*layer.height;
       for(let row=0;row<layer.height;row++){
-        const end=p+source.getUint16(c.start+2*row,le),rowEnd=dest+layer.width;
+        const end=p+source.getUint16(c.start+2*row,le),rowEnd=dest+layer.width*step;
         if(end>c.start+c.length-2)throw Error(layerHelp);
         while(p<end){
           const n=block[p++];if(n===128)continue;
@@ -558,6 +664,40 @@ async function exportTiff(file,from,to,tolerance,scope=-1){
       }
       const v=to[role];
       return v==null?null:detailColour(colour,from[role],v);
+  }
+  if(file.depth===16){
+    const view=new DataView(out.buffer);
+    for(let y=0;y<file.h;y++){
+      let p=file.offsets[Math.floor(y/file.rows)]+y%file.rows*file.w*6;
+      for(let x=0;x<file.w;x++,p+=6){
+        const r=view.getUint16(p,file.little),g=view.getUint16(p+2,file.little),b=view.getUint16(p+4,file.little);
+        const pixel=Math.round(r/257)*65536+Math.round(g/257)*256+Math.round(b/257);
+        const hit=scope<0?null:scopedColour(file,scope,x,y,from[0],tolerance);
+        if(scope>=0&&!hit)continue;
+        const ink=hit?hit.colour:pixel,target=match(ink);
+        if(target==null||target===ink)continue;
+        for(let c=0;c<3;c++){
+          const shift=16-8*c,delta=((target>>shift)&255)-((ink>>shift)&255);
+          const native=view.getUint16(p+2*c,file.little);
+          view.setUint16(p+2*c,Math.max(0,Math.min(65535,native+Math.round(delta*257*(hit?hit.weight:1)))),file.little);
+        }
+      }
+      if(y%64===63)await new Promise(resolve=>setTimeout(resolve,0));
+    }
+    for(const layer of (scope<0?file.layers:[file.layers[scope]])){
+      for(let p=0;p<layer.size;p++){
+        if(p&&p%262144===0)await new Promise(resolve=>setTimeout(resolve,0));
+        if(!coverage(file,layer,p))continue;
+        const ink=layerColour(file,layer,p),target=match(ink);
+        if(target==null||ink===target)continue;
+        for(let c=0;c<3;c++){
+          const shift=16-8*c,delta=((target>>shift)&255)-((ink>>shift)&255);
+          const plane=layer.planes[c],native=nativeLayerValue(file.bytes,plane,p);
+          view.setUint16(plane+2*p,Math.max(0,Math.min(65535,native+delta*257)),false);
+        }
+      }
+    }
+    return out;
   }
   if(scope>=0){
     const layer=file.layers[scope],[r,g,b]=layer.planes,v=to[0];
@@ -615,7 +755,7 @@ el('saveTiff').onclick=async()=>{
 
 el('upload').onchange=async e=>{let file=e.target.files[0];if(!file)return;let t=++ticket,url=URL.createObjectURL(file);const isTiff=/\.tiff?$/i.test(file.name)||file.type==='image/tiff';
 try{if(isTiff){
-  let input=openTiff(await file.arrayBuffer());if(t!==ticket)return;
+  let input=await loadTiff(await file.arrayBuffer());if(t!==ticket)return;
   if(input.layers?.some(l=>l.channels.some(c=>c.compression===1)))input=expandLayerChannels(input);
   tiffSource=input;
   if(input.layers?.length){
@@ -625,7 +765,7 @@ try{if(isTiff){
   previewTiff(input);init();input.name=file.name.replace(/\.tiff?$/i,'');tiffSource=input;
   el('saveTiff').textContent=input.layers===null?'Download full-size flat TIFF':(input.layers.length?'Download layered TIFF':'Download original-size TIFF');
   el('tiffTools').hidden=!tiffSource;el('tiffMsg').textContent='';
-  el('status').textContent=file.name+' · Original '+input.w+' × '+input.h+' px'+(input.layers===null?' · Full-size flat TIFF available. Keep your original for editable layers.':'');return;
+  el('status').textContent=file.name+' · '+input.depth+'-bit RGB · Original '+input.w+' × '+input.h+' px'+(input.layers===null?' · Full-size flat TIFF available. Keep your original for editable layers.':'');return;
 }if(!['image/jpeg','image/png'].includes(file.type) && !/\.(png|jpe?g)$/i.test(file.name))throw Error();let img=new Image();img.src=url;await img.decode();if(t!==ticket)return;let scale=Math.min(1,640/Math.max(img.width,img.height));source.width=Math.max(1,Math.round(img.width*scale));source.height=Math.max(1,Math.round(img.height*scale));ctx.imageSmoothingEnabled=false;ctx.drawImage(img,0,0,source.width,source.height);tiffSource=null;init();el('tiffTools').hidden=true;el('status').textContent=file.name+' · Preview '+source.width+' × '+source.height+' px'}catch(err){if(t===ticket){tiffSource=null;showLayers();el('layerLabel').hidden=true;el('tiffTools').hidden=true;el('status').textContent=isTiff?(err.message===layerHelp?layerHelp:tiffHelp):'Choose a readable JPG or PNG file.'}}finally{URL.revokeObjectURL(url)}};
 el('sheet').onclick=()=>{let selected=cards.filter(c=>c.check.checked);if(!selected.length){el('status').textContent='Select at least one matching.';el('sheet').textContent='Select a matching first';return}el('sheet').textContent='Save selected as JPG';let s=document.createElement('canvas');drawBoard(s,selected,Math.min(2,selected.length));s.toBlob(blob=>{if(!blob)return;let a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(el('design').value.trim()||'Rang-Studio')+'-matchings.jpg';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),30000)},'image/jpeg',.93)};
 function showBoard(fit){
