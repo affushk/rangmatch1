@@ -237,7 +237,7 @@ function openTiff(buffer){
   let layers;
   try { layers=readLayers(bytes,tags.get(37724)); }
   catch { layers=null; }
-  return {bytes,w,h,rows,offsets,layers};
+  return {bytes,w,h,rows,offsets,layers,tags,little};
 }
 function previewTiff(file){
   const scale=Math.min(1,640/Math.max(file.w,file.h));
@@ -253,9 +253,43 @@ function previewTiff(file){
   }
   ctx.putImageData(img,0,0);
 }
+function flatMatchingSource(file){
+  const {w,h,little}=file;
+  const sizes={1:1,2:1,3:2,4:4,5:8,7:1};
+  const entries=[];
+  const numeric=(tag,type,values)=>{
+    const data=new Uint8Array(values.length*sizes[type]),view=new DataView(data.buffer);
+    values.forEach((v,i)=>type===3?view.setUint16(i*2,v,little):view.setUint32(i*4,v,little));
+    entries.push({tag,type,n:values.length,data});
+  };
+  numeric(256,4,[w]);numeric(257,4,[h]);numeric(258,3,[8,8,8]);
+  numeric(259,3,[1]);numeric(262,3,[2]);numeric(273,4,[0]);
+  numeric(277,3,[3]);numeric(278,4,[h]);numeric(279,4,[w*h*3]);
+  for(const tag of [282,283,296,34675]){
+    const e=file.tags.get(tag);
+    if(e && sizes[e.type])entries.push({tag,type:e.type,n:e.n,data:file.bytes.subarray(e.start,e.start+sizes[e.type]*e.n)});
+  }
+  let cursor=8+2+entries.length*12+4;
+  for(const e of entries)if(e.data.length>4){e.offset=cursor;cursor+=e.data.length+(e.data.length%2)}
+  const pixels=cursor,bytes=new Uint8Array(pixels+w*h*3),v=new DataView(bytes.buffer);
+  v.setUint16(0,little?0x4949:0x4d4d);v.setUint16(2,42,little);v.setUint32(4,8,little);
+  v.setUint16(8,entries.length,little);
+  entries.forEach((e,i)=>{
+    const p=10+i*12;v.setUint16(p,e.tag,little);v.setUint16(p+2,e.type,little);v.setUint32(p+4,e.n,little);
+    if(e.tag===273)v.setUint32(p+8,pixels,little);
+    else if(e.offset){v.setUint32(p+8,e.offset,little);bytes.set(e.data,e.offset)}
+    else bytes.set(e.data,p+8);
+  });
+  file.offsets.forEach((offset,i)=>{
+    const y=i*file.rows,length=Math.min(file.rows,h-y)*w*3;
+    bytes.set(file.bytes.subarray(offset,offset+length),pixels+y*w*3);
+  });
+  return {bytes,w,h,offsets:[pixels],rows:h,layers:[]};
+}
 async function exportTiff(file,from,to,tolerance){
-  if(file.layers===null)throw Error(layerHelp);
-  const out=file.bytes.slice();
+  const flat=file.layers===null;
+  if(flat)file=flatMatchingSource(file);
+  const out=flat?file.bytes:file.bytes.slice();
   function match(colour){
       let best=tolerance+1,role=-1;
       for(let i=0;i<from.length;i++){
@@ -292,7 +326,7 @@ el('saveTiff').onclick=async()=>{
   if(!full&&el('area').value==='one'){el('tiffMsg').textContent='For TIFF export, select Everywhere this colour appears.';return}
   const file=tiffSource,from=full?sources.slice():[Number(el('pick').value)];
   const to=from.map((_,i)=>full&&el('lock'+i).checked?null:parseInt(cards[index].inks[i].slice(1),16));
-  const name=(el('design').value.trim()||file.name)+'-M'+(index+1)+'.tif';
+  const name=(el('design').value.trim()||file.name)+'-M'+(index+1)+(file.layers===null?'-flat':'')+'.tif';
   el('saveTiff').disabled=true;el('tiffMsg').textContent='Preparing full-size TIFF…';
   try{
     const bytes=await exportTiff(file,from,to,Number(el('tolerance').value));
@@ -307,9 +341,10 @@ el('saveTiff').onclick=async()=>{
 el('upload').onchange=async e=>{let file=e.target.files[0];if(!file)return;let t=++ticket,url=URL.createObjectURL(file);const isTiff=/\.tiff?$/i.test(file.name)||file.type==='image/tiff';
 try{if(isTiff){
   const input=openTiff(await file.arrayBuffer());if(t!==ticket)return;
-  previewTiff(input);init();input.name=file.name.replace(/\.tiff?$/i,'');tiffSource=input.layers===null?null:input;
+  previewTiff(input);init();input.name=file.name.replace(/\.tiff?$/i,'');tiffSource=input;
+  el('saveTiff').textContent=input.layers===null?'Download full-size flat TIFF':'Download original-size TIFF';
   el('tiffTools').hidden=!tiffSource;el('tiffMsg').textContent='';
-  el('status').textContent=file.name+' · Original '+input.w+' × '+input.h+' px'+(tiffSource?'':' · Preview and JPG sheet available. These Photoshop layers cannot yet be exported as a matching TIFF.');return;
+  el('status').textContent=file.name+' · Original '+input.w+' × '+input.h+' px'+(input.layers===null?' · Full-size flat TIFF available. Keep your original for editable layers.':'');return;
 }if(!['image/jpeg','image/png'].includes(file.type) && !/\.(png|jpe?g)$/i.test(file.name))throw Error();let img=new Image();img.src=url;await img.decode();if(t!==ticket)return;let scale=Math.min(1,640/Math.max(img.width,img.height));source.width=Math.max(1,Math.round(img.width*scale));source.height=Math.max(1,Math.round(img.height*scale));ctx.imageSmoothingEnabled=false;ctx.drawImage(img,0,0,source.width,source.height);init();tiffSource=null;el('tiffTools').hidden=true;el('status').textContent=file.name+' · Preview '+source.width+' × '+source.height+' px'}catch(err){if(t===ticket)el('status').textContent=isTiff?(err.message===layerHelp?layerHelp:tiffHelp):'Choose a readable JPG or PNG file.'}finally{URL.revokeObjectURL(url)}};
 el('sheet').onclick=()=>{let selected=cards.filter(c=>c.check.checked);if(!selected.length){el('status').textContent='Select at least one matching.';el('sheet').textContent='Select a matching first';return}el('sheet').textContent='Save selected as JPG';let s=document.createElement('canvas');drawBoard(s,selected,Math.min(2,selected.length));s.toBlob(blob=>{if(!blob)return;let a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(el('design').value.trim()||'Rang-Studio')+'-matchings.jpg';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),30000)},'image/jpeg',.93)};
 function showBoard(fit){
