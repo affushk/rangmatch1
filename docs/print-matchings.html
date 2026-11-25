@@ -234,7 +234,10 @@ function openTiff(buffer){
   });
   reserved.sort((a,b)=>a[0]-b[0]);
   for(let i=1;i<reserved.length;i++)if(reserved[i][0]<reserved[i-1][1])throw Error(tiffHelp);
-  return {bytes,w,h,rows,offsets,layers:readLayers(bytes,tags.get(37724))};
+  let layers;
+  try { layers=readLayers(bytes,tags.get(37724)); }
+  catch { layers=null; }
+  return {bytes,w,h,rows,offsets,layers};
 }
 function previewTiff(file){
   const scale=Math.min(1,640/Math.max(file.w,file.h));
@@ -251,6 +254,7 @@ function previewTiff(file){
   ctx.putImageData(img,0,0);
 }
 async function exportTiff(file,from,to,tolerance){
+  if(file.layers===null)throw Error(layerHelp);
   const out=file.bytes.slice();
   function match(colour){
       let best=tolerance+1,role=-1;
@@ -303,9 +307,9 @@ el('saveTiff').onclick=async()=>{
 el('upload').onchange=async e=>{let file=e.target.files[0];if(!file)return;let t=++ticket,url=URL.createObjectURL(file);const isTiff=/\.tiff?$/i.test(file.name)||file.type==='image/tiff';
 try{if(isTiff){
   const input=openTiff(await file.arrayBuffer());if(t!==ticket)return;
-  previewTiff(input);init();input.name=file.name.replace(/\.tiff?$/i,'');tiffSource=input;
-  el('tiffTools').hidden=false;el('tiffMsg').textContent='';
-  el('status').textContent=file.name+' · Original '+input.w+' × '+input.h+' px';return;
+  previewTiff(input);init();input.name=file.name.replace(/\.tiff?$/i,'');tiffSource=input.layers===null?null:input;
+  el('tiffTools').hidden=!tiffSource;el('tiffMsg').textContent='';
+  el('status').textContent=file.name+' · Original '+input.w+' × '+input.h+' px'+(tiffSource?'':' · Preview and JPG sheet available. These Photoshop layers cannot yet be exported as a matching TIFF.');return;
 }if(!['image/jpeg','image/png'].includes(file.type) && !/\.(png|jpe?g)$/i.test(file.name))throw Error();let img=new Image();img.src=url;await img.decode();if(t!==ticket)return;let scale=Math.min(1,640/Math.max(img.width,img.height));source.width=Math.max(1,Math.round(img.width*scale));source.height=Math.max(1,Math.round(img.height*scale));ctx.imageSmoothingEnabled=false;ctx.drawImage(img,0,0,source.width,source.height);init();tiffSource=null;el('tiffTools').hidden=true;el('status').textContent=file.name+' · Preview '+source.width+' × '+source.height+' px'}catch(err){if(t===ticket)el('status').textContent=isTiff?(err.message===layerHelp?layerHelp:tiffHelp):'Choose a readable JPG or PNG file.'}finally{URL.revokeObjectURL(url)}};
 el('sheet').onclick=()=>{let selected=cards.filter(c=>c.check.checked);if(!selected.length){el('status').textContent='Select at least one matching.';el('sheet').textContent='Select a matching first';return}el('sheet').textContent='Save selected as JPG';let s=document.createElement('canvas');drawBoard(s,selected,Math.min(2,selected.length));s.toBlob(blob=>{if(!blob)return;let a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(el('design').value.trim()||'Rang-Studio')+'-matchings.jpg';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),30000)},'image/jpeg',.93)};
 function showBoard(fit){
