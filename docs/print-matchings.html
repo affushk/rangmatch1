@@ -22,9 +22,14 @@ for(let y=0;y<3;y++)for(let x=-1;x<4;x++){ctx.save();ctx.translate(x*96+32+(y%2)
 function init(){armRolePicker(false);zoomPoint=null;el('split').value=100;original=ctx.getImageData(0,0,source.width,source.height);counts=new Map();const d=original.data;for(let i=0;i<d.length;i+=4){if(!d[i+3])continue;let k=key(d,i);if(!counts.has(k))counts.set(k,{n:0,i:i/4});counts.get(k).n++}
 let sorted=[...counts].sort((a,b)=>b[1].n-a[1].n);el('pick').replaceChildren(...sorted.slice(0,24).map(([k])=>new Option(hex(k),k)));seed=sorted[0]?.[1].i??0;
   edits.clear();sources=[];
-  for(const [colour] of sorted){
-    if(sources.every(value=>distance(value,colour)>48))sources.push(colour);
-    if(sources.length===3)break;
+  if(sorted.length){
+    sources.push(sorted[0][0]);
+    // Choose printable motif inks before neutral areas such as a white panel margin.
+    const accents=sorted.slice(1).filter(([k])=>tone(k).c>=24);
+    for(const [colour] of [...accents,...sorted.slice(1)]){
+      if(sources.length===3)break;
+      if(sources.every(value=>distance(value,colour)>48))sources.push(colour);
+    }
   }
   activeRole=0;
   roles.forEach((_,i)=>el('lock'+i).checked=false);
@@ -388,6 +393,47 @@ function fitGround(ground,lights){
   }
   return best;
 }
+function mixInk(a,b,amount){
+  let rgb=0;
+  for(const shift of [16,8,0]){
+    const x=(a>>shift)&255,y=(b>>shift)&255;
+    rgb=rgb*256+Math.round(x+(y-x)*amount);
+  }
+  return rgb;
+}
+function inkContrast(a,b){
+  const x=luminance(a),y=luminance(b);
+  return (Math.max(x,y)+.05)/(Math.min(x,y)+.05);
+}
+function coordinatedInks(family,defaults,manual,full){
+  const actual=(i)=>full&&sources[i]!=null&&el('lock'+i).checked?hex(sources[i]):manual?.[i];
+  const ground=parseInt((actual(0)||defaults[0]).slice(1),16);
+  const targets=[actual(0)||defaults[0]];
+  const mono=family==='Mono',bold=family==='Contrast';
+  for(let i=1;i<3;i++){
+    if(actual(i)){targets.push(actual(i));continue}
+    const base=parseInt(defaults[i].slice(1),16);
+    const light=luminance(base)>luminance(ground);
+    const anchor=mono?ground:base;
+    const desired=bold?(i===1?5:3.3):i===1?3.6:2.5;
+    let winner=base,best=-Infinity;
+    for(const end of [0,0xffffff]){
+      for(let step=0;step<=24;step++){
+        const amount=step/25;
+        const candidate=mixInk(anchor,end,amount);
+        const contrast=inkContrast(ground,candidate);
+        const flower=parseInt((targets[1]||targets[0]).slice(1),16);
+        const separation=i===2?Math.min(1,Math.max(distance(candidate,flower)/85,(inkContrast(candidate,flower)-1)/.7)):1;
+        const fidelity=distance(candidate,base)/255;
+        const score=2*Math.min(1,contrast/desired)+.7*separation-.65*fidelity-
+          ((luminance(candidate)>luminance(ground))!==light?.16:0);
+        if(score>best){best=score;winner=candidate}
+      }
+    }
+    targets.push(hex(winner));
+  }
+  return targets;
+}
 function render(){
   const full=el('method').value==='full',family=el('mood').value;
   const layered=!!tiffSource?.layers?.length;
@@ -426,11 +472,10 @@ function render(){
   }
   const tint=range?rangeTint:detailColour;
   const sourceInk=Number(el('pick').value);
-  const adaptive=Object.prototype.hasOwnProperty.call(textileFamilies,family);
-  const detailLights=adaptive?motifLights(original.data,map,!!hits):[];
+  const detailLights=motifLights(original.data,map,!!hits);
   palettes[family].forEach((ground,j)=>{
     const defaults=[ground,...companion[family][j].map(c=>'#'+c)];
-    if(adaptive){
+    if(detailLights.length||full){
       const lights=detailLights.slice();
       if(full){
         const w=1+lights.reduce((sum,p)=>sum+p[1],0);
@@ -439,9 +484,10 @@ function render(){
           lights.push([luminance(ink),w]);
         }
       }
-      defaults[0]=fitGround(ground,lights);
+      const fitted=parseInt(fitGround(ground,lights).slice(1),16);
+      defaults[0]=hex(mixInk(parseInt(ground.slice(1),16),fitted,.45));
     }
-    const targets=defaults.map((value,i)=>edits.get(editKey(j))?.[i]||value);
+    const targets=coordinatedInks(family,defaults,edits.get(editKey(j)),full);
     const values=targets.map((c,i)=>full&&(el('lock'+i).checked||sources[i]==null)?null:parseInt(c.slice(1),16));
     const img=new ImageData(new Uint8ClampedArray(original.data),source.width,source.height);
     for(let i=0;i<map.length;i++){
@@ -1096,7 +1142,8 @@ function drawHero(){
   el('pair').style.width=Math.min(el('stage').clientWidth,maxHeight*left.width/left.height,zoomPoint?left.width:Infinity)+'px';
   el('zoomHero').textContent=zoomPoint?'Fit design':'100% zoom';
   for(let i=0;i<cards.length;i++){
-    const btn=el('swatches').children[i];btn.firstChild.style.background=cards[i].inks[0];btn.setAttribute('aria-pressed',String(i===activeMatching));
+    const btn=el('swatches').children[i];const inks=cards[i].inks;
+    btn.firstChild.style.background=el('method').value==='full'?'linear-gradient(to right,'+inks[0]+' 0% 58%,'+inks[1]+' 58% 82%,'+inks[2]+' 82% 100%)':inks[0];btn.setAttribute('aria-pressed',String(i===activeMatching));
   }
   updateSplit();
 }
