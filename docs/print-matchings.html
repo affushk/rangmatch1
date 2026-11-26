@@ -168,6 +168,7 @@ const extraFamilies={
   Pastel:['F5DADE 984F69 56684C','D3EAE4 A65059 506C59','E9DDF4 89557C 526A61','F7EBBE 99555D 5A7052','DDE8F4 97565E 516E67','F6D9C6 91545F 576B4F','DDE8CF 985A70 47685A','EFDEDA 895478 566C60']
 };
 const textileFamilies={
+  "Deep Bright Dark": ["860B42 005B63 321448","A03B12 215B37 C79A20","253782 A00759 471244","586323 810D30 12636A","4C115F 176042 A04416","B00965 00495C 650D38","98421C 351051 23633C","07566B 8D123B 341B3D"],
   "Textile Classics": [
     "223D60 E8B975 DDA395",
     "F1DFBD 963E38 375D60",
@@ -464,6 +465,7 @@ function monoShade(colour,ramp){
   return ramp[level];
 }
 function coordinatedInks(family,defaults,manual,full){
+  if(family==='Deep Bright Dark')return defaults.map((c,i)=>full&&sources[i]!=null&&el('lock'+i).checked?hex(sources[i]):manual?.[i]||c);
   const actual=(i)=>full&&sources[i]!=null&&el('lock'+i).checked?hex(sources[i]):manual?.[i];
   const ground=parseInt((actual(0)||defaults[0]).slice(1),16);
   const targets=[actual(0)||defaults[0]];
@@ -533,7 +535,7 @@ function render(){
   const detailLights=motifLights(original.data,map,!!hits);
   palettes[family].forEach((ground,j)=>{
     const defaults=[ground,...companion[family][j].map(c=>'#'+c)];
-    if(detailLights.length||full){
+    if(family!=='Deep Bright Dark'&&(detailLights.length||full)){
       const lights=detailLights.slice();
       if(full){
         const w=1+lights.reduce((sum,p)=>sum+p[1],0);
