@@ -127,12 +127,19 @@ function hit(pixel) {
 }if(el('area').value==='all'){for(let i=0;i<n;i++)if(hit(i))mask[i]=1}else if(hit(seed)){let stack=[seed];mask[seed]=1;function visit(j){if(!mask[j]&&hit(j)){mask[j]=1;stack.push(j)}}while(stack.length){let i=stack.pop();if(i%w)visit(i-1);if(i%w<w-1)visit(i+1);if(i>=w)visit(i-w);if(i+w<n)visit(i+w)}}return mask}
 const roles=['Ground','Flower','Leaf'];
 let activeRole=0, sources=[], pickingRole=false;
+let pendingNeutral=null;
 function armRolePicker(enabled){
+  pendingNeutral=null;
   pickingRole=enabled;
   el('pair').style.cursor=enabled?'crosshair':'';
   el('pickHint').textContent=enabled?'Click the '+roles[activeRole].toLowerCase()+' colour in the design.':'Choose a role, then click its colour in the large preview or the original thumbnail.';
 }
 function assignRoleColour(k){
+  if(activeRole===2&&el('mood').value==='Contrast'&&tone(k).c<12&&pickingRole&&k!==pendingNeutral){
+    pendingNeutral=k;
+    el('pickHint').textContent=hex(k)+' is neutral. Click the coloured middle of the leaf, or click this shade again to use it.';
+    return;
+  }
   const existing=sources.indexOf(k);
   if(existing>=0&&existing!==activeRole){
     el('pickHint').textContent='This colour belongs to '+roles[existing]+'. Pick another shade or edit that role.';
@@ -172,14 +179,14 @@ const textileFamilies={
     "A8C7BE 723949 334B50"
   ],
   "Contrast": [
-    "174855 FFC390 F1DCAB",
-    "F2CF9B 274C70 833D49",
-    "542941 C7DED3 F3C87A",
-    "D5E5D1 833F64 3B5369",
-    "29355E FAD099 E5A696",
-    "F3BBAF 205451 493858",
-    "77412B B8E0DE F6DEAB",
-    "E4D4E9 425530 66354C"
+    "164853 F2A68F B8CC88",
+    "F2DFBC 9C3557 39685F",
+    "582E48 E8C879 9FC8BB",
+    "D6E3D0 883956 395674",
+    "24365C EFA58D B2C674",
+    "F0C1B3 265956 704659",
+    "843F36 F0C788 A3CEC0",
+    "E2D7E7 70405F 3A6658"
   ],
   "Mono": [
     "273D59 B7C8DE 829DBE",
@@ -254,11 +261,44 @@ function animateBoard(){
 function distance(a,b){
   return Math.max(Math.abs((a>>16)-(b>>16)),Math.abs(((a>>8)&255)-((b>>8)&255)),Math.abs((a&255)-(b&255)));
 }
-function roleMap(data,colours,tolerance){
+function contrastClassifier(inks,tolerance){
+  const refs=inks.map(k=>k==null?null:tone(k));
+  const cache=new Map();
+  function choose(pixel){
+    const exact=inks.indexOf(pixel);
+    if(exact>=0)return exact;
+    const p=tone(pixel);
+    let winner=-1,best=Infinity;
+    refs.forEach((r,i)=>{
+      if(!r)return;
+      const d=distance(inks[i],pixel);
+      let score=d<=tolerance?d/(tolerance+1):Infinity;
+      if(r.c<30&&p.c<30){
+        const spread=i===0&&r.y<65?48:22;
+        if(Math.abs(r.y-p.y)<spread)score=Math.min(score,(Math.abs(r.y-p.y)+Math.abs(r.c-p.c)*.4)/spread);
+      }else if(r.c>=18&&p.c>=14){
+        const delta=Math.abs(r.h-p.h),hue=Math.min(delta,360-delta);
+        const limit=i===0?18:38;
+        if(hue<limit)score=Math.min(score,hue/limit+.24*Math.abs(r.y-p.y)/255+.12*Math.abs(r.c-p.c)/255);
+      }
+      if(score<best){winner=i;best=score}
+    });
+    return winner;
+  }
+  return pixel=>{
+    if(cache.has(pixel))return cache.get(pixel);
+    const role=choose(pixel);
+    if(cache.size<65536)cache.set(pixel,role);
+    return role;
+  };
+}
+function roleMap(data,colours,tolerance,contrast=false){
+  const classify=contrast?contrastClassifier(colours,tolerance):null;
   const map=new Uint8Array(data.length/4),cache=new Map();
   for(let i=0;i<map.length;i++){
     if(!data[i*4+3])continue;
     const colour=key(data,i*4);
+    if(classify){map[i]=classify(colour)+1;continue}
     if(!cache.has(colour)){
       let best=tolerance+1,role=0;
       colours.forEach((value,j)=>{
@@ -477,7 +517,7 @@ function render(){
   const hits=scope>=0?Array.from({length:source.width*source.height},(_,i)=>scopedColour(tiffSource,scope,
     Math.floor((i%source.width+.5)*tiffSource.w/source.width),Math.floor((Math.floor(i/source.width)+.5)*tiffSource.h/source.height),
     Number(el('pick').value),Number(el('tolerance').value),rangeRule)):null;
-  const map=hits|| (full?roleMap(original.data,sources,Number(el('tolerance').value)):range?Uint8Array.from({length:source.width*source.height},(_,i)=>{
+  const map=hits|| (full?roleMap(original.data,sources,Number(el('tolerance').value),family==='Contrast'):range?Uint8Array.from({length:source.width*source.height},(_,i)=>{
     const x=Math.floor((i%source.width+.5)*rangeRule.w/source.width),y=Math.floor((Math.floor(i/source.width)+.5)*rangeRule.h/source.height);
     return original.data[4*i+3]&&rangeRule.inside(x,y)&&rangeRule.accepts(key(original.data,4*i))?1:0;
   }):selection());
@@ -488,7 +528,7 @@ function render(){
     for(let i=0;i<map.length;i++){const shade=hits?Math.round(255*(hits[i]?.weight||0)):map[i]*255;img.data.fill(shade,i*4,i*4+3);img.data[i*4+3]=255}
     g.putImageData(img,0,0);
   }
-  const tint=range?rangeTint:detailColour;
+  const tint=range||(full&&family==='Contrast')?rangeTint:detailColour;
   const sourceInk=Number(el('pick').value);
   const detailLights=motifLights(original.data,map,!!hits);
   palettes[family].forEach((ground,j)=>{
@@ -921,7 +961,7 @@ async function matchingOverlay(file,flat,name){
   return new Blob([flat.bytes,new Uint8Array(offset-flat.bytes.length),layerBlock],{type:'image/tiff'});
 }
 
-async function exportTiff(file,from,to,tolerance,scope=-1,rule=null,matchingName="Matching",ramp=null){
+async function exportTiff(file,from,to,tolerance,scope=-1,rule=null,matchingName="Matching",ramp=null,contrast=false){
   const original=file;
   if(file.layers?.some(layer=>layer.channels.some(c=>c.compression===1))){
     file=expandLayerChannels(file);
@@ -930,7 +970,12 @@ async function exportTiff(file,from,to,tolerance,scope=-1,rule=null,matchingName
   const flat=file.layers===null;
   if(flat)file=flatMatchingSource(file);
   const out=flat?file.bytes:file.bytes.slice();
+  const classify=contrast?contrastClassifier(from,tolerance):null;
   function match(colour){
+      if(classify){
+        const role=classify(colour);
+        return to[role]==null?null:rangeTint(colour,from[role],to[role]);
+      }
       if(rule)return rule.accepts(colour)?rangeTint(colour,from[0],to[0]):null;
       let best=tolerance+1,role=-1;
       for(let i=0;i<from.length;i++){
@@ -1023,7 +1068,7 @@ el('saveTiff').onclick=async()=>{
   const name=(el('design').value.trim()||file.name)+'-M'+(index+1)+(file.layers===null&&!file.overlay?'-flat':'')+'.tif';
   el('saveTiff').disabled=true;el('tiffMsg').textContent='Preparing full-size TIFF…';
   try{
-    const bytes=await exportTiff(file,from,to,Number(el('tolerance').value),selectedLayer(),rangeRule,"Matching M"+(index+1),full&&el('mood').value==='Mono'?monoRamp(parseInt(cards[index].inks[0].slice(1),16)):null);
+    const bytes=await exportTiff(file,from,to,Number(el('tolerance').value),selectedLayer(),rangeRule,"Matching M"+(index+1),full&&el('mood').value==='Mono'?monoRamp(parseInt(cards[index].inks[0].slice(1),16)):null,full&&el('mood').value==='Contrast');
     if(file!==tiffSource)return;
     const link=document.createElement('a');link.href=URL.createObjectURL(new Blob([bytes],{type:'image/tiff'}));
     link.download=name;link.click();setTimeout(()=>URL.revokeObjectURL(link.href),60000);
@@ -1141,9 +1186,9 @@ function drawHero(){
       g.putImageData(img,0,0);
     }else{g.imageSmoothingQuality="high";g.drawImage(originalPhoto||source,sx,sy,cropW,cropH,0,0,cw,ch);img=g.getImageData(0,0,cw,ch)}
     const scope=selectedLayer(),full=el('method').value==='full',ink=Number(el('pick').value),tol=Number(el('tolerance').value);
-    const values=card.inks.map(c=>parseInt(c.slice(1),16)),rolesAt=full?roleMap(img.data,sources,tol):null;
+    const values=card.inks.map(c=>parseInt(c.slice(1),16)),rolesAt=full?roleMap(img.data,sources,tol,el('mood').value==='Contrast'):null;
     const ramp=full&&el('mood').value==='Mono'?monoRamp(values[0]):null;
-    const tint=rangeRule?rangeTint:detailColour;
+    const tint=rangeRule||(full&&el('mood').value==='Contrast')?rangeTint:detailColour;
     const connected=!rangeRule&&!full&&scope<0&&el('area').value==='one'?selection():null;
     for(let y=0;y<ch;y++)for(let x=0;x<cw;x++){
       const i=4*(y*cw+x),colour=key(img.data,i);
