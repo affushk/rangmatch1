@@ -405,6 +405,24 @@ function inkContrast(a,b){
   const x=luminance(a),y=luminance(b);
   return (Math.max(x,y)+.05)/(Math.min(x,y)+.05);
 }
+// A monotone ramp keeps the value structure of unassigned print details.
+function monoRamp(ground){
+  const channels=[ground>>16,(ground>>8)&255,ground&255];
+  const grey=(77*channels[0]+150*channels[1]+29*channels[2])/256;
+  return Uint32Array.from({length:256},(_,level)=>{
+    let colour=0;
+    for(const channel of channels){
+      const shade=level<grey?channel*level/Math.max(1,grey):
+        channel+(255-channel)*(level-grey)/Math.max(1,255-grey);
+      colour=colour*256+Math.round(Math.max(0,Math.min(255,shade)));
+    }
+    return colour;
+  });
+}
+function monoShade(colour,ramp){
+  const level=(77*(colour>>16)+150*((colour>>8)&255)+29*(colour&255)+128)>>8;
+  return ramp[level];
+}
 function coordinatedInks(family,defaults,manual,full){
   const actual=(i)=>full&&sources[i]!=null&&el('lock'+i).checked?hex(sources[i]):manual?.[i];
   const ground=parseInt((actual(0)||defaults[0]).slice(1),16);
@@ -489,12 +507,14 @@ function render(){
     }
     const targets=coordinatedInks(family,defaults,edits.get(editKey(j)),full);
     const values=targets.map((c,i)=>full&&(el('lock'+i).checked||sources[i]==null)?null:parseInt(c.slice(1),16));
+    const ramp=full&&family==='Mono'?monoRamp(parseInt(targets[0].slice(1),16)):null;
     const img=new ImageData(new Uint8ClampedArray(original.data),source.width,source.height);
     for(let i=0;i<map.length;i++){
       if(hits){if(hits[i]?.weight)tintComposite(img.data,i*4,hits[i],tint(hits[i].colour,sourceInk,values[0]));continue}
       const role=map[i]-1,target=values[role];
-      if(target==null)continue;
-      const colour=tint(key(original.data,i*4),full?sources[role]:sourceInk,target);
+      if(target==null&&!(ramp&&role<0&&original.data[i*4+3]))continue;
+      const pixel=key(original.data,i*4);
+      const colour=role<0?monoShade(pixel,ramp):tint(pixel,full?sources[role]:sourceInk,target);
       img.data[i*4]=colour>>16;img.data[i*4+1]=(colour>>8)&255;img.data[i*4+2]=colour&255;
     }
     const {canvas,code}=cards[j];canvas.width=source.width;canvas.height=source.height;
@@ -901,7 +921,7 @@ async function matchingOverlay(file,flat,name){
   return new Blob([flat.bytes,new Uint8Array(offset-flat.bytes.length),layerBlock],{type:'image/tiff'});
 }
 
-async function exportTiff(file,from,to,tolerance,scope=-1,rule=null,matchingName="Matching"){
+async function exportTiff(file,from,to,tolerance,scope=-1,rule=null,matchingName="Matching",ramp=null){
   const original=file;
   if(file.layers?.some(layer=>layer.channels.some(c=>c.compression===1))){
     file=expandLayerChannels(file);
@@ -918,6 +938,7 @@ async function exportTiff(file,from,to,tolerance,scope=-1,rule=null,matchingName
         const diff=distance(colour,from[i]);
         if(diff<best){best=diff;role=i}
       }
+      if(role<0&&ramp)return monoShade(colour,ramp);
       const v=to[role];
       return v==null?null:detailColour(colour,from[role],v);
   }
@@ -1002,7 +1023,7 @@ el('saveTiff').onclick=async()=>{
   const name=(el('design').value.trim()||file.name)+'-M'+(index+1)+(file.layers===null&&!file.overlay?'-flat':'')+'.tif';
   el('saveTiff').disabled=true;el('tiffMsg').textContent='Preparing full-size TIFF…';
   try{
-    const bytes=await exportTiff(file,from,to,Number(el('tolerance').value),selectedLayer(),rangeRule,"Matching M"+(index+1));
+    const bytes=await exportTiff(file,from,to,Number(el('tolerance').value),selectedLayer(),rangeRule,"Matching M"+(index+1),full&&el('mood').value==='Mono'?monoRamp(parseInt(cards[index].inks[0].slice(1),16)):null);
     if(file!==tiffSource)return;
     const link=document.createElement('a');link.href=URL.createObjectURL(new Blob([bytes],{type:'image/tiff'}));
     link.download=name;link.click();setTimeout(()=>URL.revokeObjectURL(link.href),60000);
@@ -1121,6 +1142,7 @@ function drawHero(){
     }else{g.imageSmoothingQuality="high";g.drawImage(originalPhoto||source,sx,sy,cropW,cropH,0,0,cw,ch);img=g.getImageData(0,0,cw,ch)}
     const scope=selectedLayer(),full=el('method').value==='full',ink=Number(el('pick').value),tol=Number(el('tolerance').value);
     const values=card.inks.map(c=>parseInt(c.slice(1),16)),rolesAt=full?roleMap(img.data,sources,tol):null;
+    const ramp=full&&el('mood').value==='Mono'?monoRamp(values[0]):null;
     const tint=rangeRule?rangeTint:detailColour;
     const connected=!rangeRule&&!full&&scope<0&&el('area').value==='one'?selection():null;
     for(let y=0;y<ch;y++)for(let x=0;x<cw;x++){
@@ -1131,9 +1153,9 @@ function drawHero(){
         if(hit?.weight)tintComposite(img.data,i,hit,tint(hit.colour,ink,values[0]));continue;
       }
       const role=full?rolesAt[i/4]-1:0;
-      if(full?(role<0||el('lock'+role).checked):rangeRule?!rangeRule.accepts(colour):distance(ink,colour)>tol)continue;
+      if(full?(role<0?!ramp:el('lock'+role).checked):rangeRule?!rangeRule.accepts(colour):distance(ink,colour)>tol)continue;
       if(connected&&!connected[Math.floor(ys[y]*source.height/h)*source.width+Math.floor(xs[x]*source.width/w)])continue;
-      const c=tint(colour,full?sources[role]:ink,values[role]);
+      const c=role<0?monoShade(colour,ramp):tint(colour,full?sources[role]:ink,values[role]);
       img.data[i]=c>>16;img.data[i+1]=(c>>8)&255;img.data[i+2]=c&255;
     }
     right.getContext('2d').putImageData(img,0,0);
