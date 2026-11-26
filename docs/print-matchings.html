@@ -305,7 +305,7 @@ function showLayers(){
     }
     rows.append(row);
   }
-  el('layerScope').textContent=file.layers?.length?(scope<0?'Full print uses all layers. Select a layer above to edit its colour.':'Matching applies only to '+(list[scope].name||'this layer')+'.'):file.layers===null?'Preview and flat export only.':'Matching applies to the flat image.';
+  el('layerScope').textContent=file.layers?.length?(scope<0?'Full print uses all layers. Select a layer above to edit its colour.':'Matching applies only to '+(list[scope].name||'this layer')+'.'):file.overlay?'Matching exports on a separate top layer.':file.layers===null?'Preview and flat export only.':'Matching applies to the flat image.';
 }
 function nativeLayerValue(bytes,plane,p){
   const i=plane+2*p;
@@ -517,7 +517,12 @@ function readLayers(bytes,item,namesOnly=false,depth=8){
     if(pos!==end)fail();
     if(section!==3)layers.push({size,width,height,left,top,hidden,name,section,channels,planes:[]});
   }
-  if(namesOnly)return layers;
+  if(namesOnly){
+    const dataEnd=pos+layers.reduce((n,l)=>n+l.channels.reduce((s,c)=>s+c.length,0),0);
+    if(depth===8&&layers.length===count&&count<32767&&layers.every(l=>!l.section)&&dataEnd<=limit&&limit-dataEnd<=1)
+      layers.overlay={item,le,headerEnd:pos,dataEnd,tailStart:Math.ceil(limit/4)*4};
+    return layers;
+  }
   const headerEnd=pos;
   for(const layer of layers){
     const ids=new Set();
@@ -676,7 +681,7 @@ function openTiff(buffer){
   catch { layers=null; }
   let inventory=layers;
   if(layers===null){try{inventory=readLayers(bytes,tags.get(37724),true,bits[0])}catch{inventory=null}}
-  return {bytes,w,h,rows,offsets,layers,inventory,tags,little,depth:bits[0]};
+  return {bytes,w,h,rows,offsets,layers,inventory,overlay:inventory?.overlay,tags,little,depth:bits[0]};
 }
 function previewTiff(file){
   const scale=Math.min(1,640/Math.max(file.w,file.h));
@@ -702,12 +707,15 @@ function flatMatchingSource(file){
     entries.push({tag,type,n:values.length,data});
   };
   numeric(256,4,[w]);numeric(257,4,[h]);numeric(258,3,[depth,depth,depth]);
+  if(file.overlay)entries.push({tag:37724,type:7,n:0,data:new Uint8Array(4)});
   numeric(259,3,[1]);numeric(262,3,[2]);numeric(273,4,[0]);
   numeric(277,3,[3]);numeric(278,4,[h]);numeric(279,4,[w*h*3*step]);
   for(const tag of [282,283,296,34675]){
     const e=file.tags.get(tag);
     if(e && sizes[e.type])entries.push({tag,type:e.type,n:e.n,data:file.bytes.subarray(e.start,e.start+sizes[e.type]*e.n)});
   }
+  entries.sort((a,b)=>a.tag-b.tag);
+  let layerEntry;
   let cursor=8+2+entries.length*12+4;
   for(const e of entries)if(e.data.length>4){e.offset=cursor;cursor+=e.data.length+(e.data.length%2)}
   const pixels=cursor,bytes=new Uint8Array(pixels+w*h*3*step),v=new DataView(bytes.buffer);
@@ -715,6 +723,7 @@ function flatMatchingSource(file){
   v.setUint16(8,entries.length,little);
   entries.forEach((e,i)=>{
     const p=10+i*12;v.setUint16(p,e.tag,little);v.setUint16(p+2,e.type,little);v.setUint32(p+4,e.n,little);
+    if(e.tag===37724)layerEntry=p;
     if(e.tag===273)v.setUint32(p+8,pixels,little);
     else if(e.offset){v.setUint32(p+8,e.offset,little);bytes.set(e.data,e.offset)}
     else bytes.set(e.data,p+8);
@@ -723,7 +732,7 @@ function flatMatchingSource(file){
     const y=i*file.rows,length=Math.min(file.rows,h-y)*w*3*step;
     bytes.set(file.bytes.subarray(offset,offset+length),pixels+y*w*3*step);
   });
-  return {bytes,w,h,offsets:[pixels],rows:h,layers:[],little,depth};
+  return {bytes,w,h,layerEntry,offsets:[pixels],rows:h,layers:[],little,depth};
 }
 function expandLayerChannels(file){
   const step=file.depth/8;
@@ -763,7 +772,72 @@ function expandLayerChannels(file){
   }
   return openTiff(out.buffer);
 }
-async function exportTiff(file,from,to,tolerance,scope=-1,rule=null){
+function packMatchingRow(row, dest, at){
+  let i=0;
+  while(i<row.length){
+    let run=1;
+    while(run<128&&i+run<row.length&&row[i+run]===row[i])run++;
+    if(run>=3){dest[at++]=257-run;dest[at++]=row[i];i+=run;continue}
+    const start=i++;
+    while(i<row.length&&i-start<128){
+      if(i+2<row.length&&row[i]===row[i+1]&&row[i]===row[i+2])break;
+      i++;
+    }
+    dest[at++]=i-start-1;dest.set(row.subarray(start,i),at);at+=i-start;
+  }
+  return at;
+}
+async function matchingOverlay(file,flat,name){
+  const layout=file.overlay,{item,le,headerEnd,dataEnd,tailStart}=layout;
+  const block=file.bytes.subarray(item.start,item.start+item.n);
+  const channels=[-1,0,1,2],parts=channels.map(()=>[]),tables=channels.map(()=>new Uint8Array(2*file.h));
+  const views=tables.map(t=>new DataView(t.buffer)),lengths=channels.map(()=>2+file.h*2);
+  const rows=channels.map(()=>new Uint8Array(file.w)),encoded=new Uint8Array(2*file.w+2);
+  const destPixels=flat.offsets[0];
+  let pending=channels.map(()=>[]);
+  for(let y=0;y<file.h;y++){
+    let orig=file.offsets[Math.floor(y/file.rows)]+(y%file.rows)*3*file.w;
+    let dst=destPixels+y*file.w*3;
+    for(let x=0;x<file.w;x++,orig+=3,dst+=3){
+      const changed=key(file.bytes,orig)!==key(flat.bytes,dst);
+      rows[0][x]=changed?255:0;
+      for(let c=0;c<3;c++)rows[c+1][x]=changed?flat.bytes[dst+c]:0;
+    }
+    for(let c=0;c<4;c++){
+      const n=packMatchingRow(rows[c],encoded,0);
+      if(n>65535)throw Error(layerHelp);
+      views[c].setUint16(2*y,n,le);lengths[c]+=n;pending[c].push(encoded.slice(0,n));
+    }
+    if(y%64===63||y===file.h-1){
+      for(let c=0;c<4;c++)parts[c].push(new Blob(pending[c]));
+      pending=channels.map(()=>[]);await new Promise(resolve=>setTimeout(resolve,0));
+    }
+  }
+  // Photoshop stores the bottom layer first. Append the matching above the original stack.
+  const label=new TextEncoder().encode(name),nameBytes=Math.ceil((1+label.length)/4)*4;
+  const record=new Uint8Array(66+nameBytes),v=new DataView(record.buffer);
+  v.setInt32(8,file.h,le);v.setInt32(12,file.w,le);v.setUint16(16,4,le);
+  for(let i=0;i<4;i++){v.setInt16(18+i*6,channels[i],le);v.setUint32(20+i*6,lengths[i],le)}
+  record.set(new TextEncoder().encode(le?'MIB8mron':'8BIMnorm'),42);record[50]=255;record[52]=8;
+  v.setUint32(54,8+nameBytes,le);record[66]=label.length;record.set(label,67);
+  const head=block.slice(0,50),hv=new DataView(head.buffer);
+  const count=hv.getInt16(48,le);hv.setInt16(48,count+Math.sign(count),le);
+  const end=dataEnd+record.length+lengths.reduce((a,b)=>a+b,0);
+  hv.setUint32(44,end-48,le);
+  const compression=le?new Uint8Array([1,0]):new Uint8Array([0,1]);
+  // Preserve the original records, compressed channels and trailing Photoshop blocks verbatim.
+  const data=[head,block.subarray(50,headerEnd),record,block.subarray(headerEnd,dataEnd)];
+  for(let c=0;c<4;c++)data.push(compression,tables[c],...parts[c]);
+  data.push(new Uint8Array((4-end%4)%4),block.subarray(tailStart));
+  const layerBlock=new Blob(data),offset=Math.ceil(flat.bytes.length/4)*4;
+  if(offset+layerBlock.size>=2**32)throw Error(layerHelp);
+  const d=new DataView(flat.bytes.buffer);
+  d.setUint32(flat.layerEntry+4,layerBlock.size,file.little);d.setUint32(flat.layerEntry+8,offset,file.little);
+  return new Blob([flat.bytes,new Uint8Array(offset-flat.bytes.length),layerBlock],{type:'image/tiff'});
+}
+
+async function exportTiff(file,from,to,tolerance,scope=-1,rule=null,matchingName="Matching"){
+  const original=file;
   if(file.layers?.some(layer=>layer.channels.some(c=>c.compression===1))){
     file=expandLayerChannels(file);
     if(file.layers===null)throw Error(layerHelp);
@@ -852,7 +926,7 @@ async function exportTiff(file,from,to,tolerance,scope=-1,rule=null){
       if(v!=null){out[r+i]=v>>16;out[g+i]=v>>8&255;out[b+i]=v&255}
     }
   }
-  return out;
+  return original.overlay?matchingOverlay(original,file,matchingName):out;
 }
 el('saveTiff').onclick=async()=>{
   if(!tiffSource)return;
@@ -860,10 +934,10 @@ el('saveTiff').onclick=async()=>{
   if(!full&&!rangeRule&&el('area').value==='one'){el('tiffMsg').textContent='For TIFF export, select Everywhere this colour appears.';return}
   const file=tiffSource,from=full?sources.slice():[Number(el('pick').value)];
   const to=from.map((_,i)=>full&&el('lock'+i).checked?null:parseInt(cards[index].inks[i].slice(1),16));
-  const name=(el('design').value.trim()||file.name)+'-M'+(index+1)+(file.layers===null?'-flat':'')+'.tif';
+  const name=(el('design').value.trim()||file.name)+'-M'+(index+1)+(file.layers===null&&!file.overlay?'-flat':'')+'.tif';
   el('saveTiff').disabled=true;el('tiffMsg').textContent='Preparing full-size TIFF…';
   try{
-    const bytes=await exportTiff(file,from,to,Number(el('tolerance').value),selectedLayer(),rangeRule);
+    const bytes=await exportTiff(file,from,to,Number(el('tolerance').value),selectedLayer(),rangeRule,"Matching M"+(index+1));
     if(file!==tiffSource)return;
     const link=document.createElement('a');link.href=URL.createObjectURL(new Blob([bytes],{type:'image/tiff'}));
     link.download=name;link.click();setTimeout(()=>URL.revokeObjectURL(link.href),60000);
@@ -893,9 +967,9 @@ try{
   }
   stage(80,'Preparing your matchings…');await pause(24);if(t!==ticket)return false;
   previewTiff(input);init();input.name=file.name.replace(/\.tiff?$/i,'');tiffSource=input;
-  el('saveTiff').textContent=input.layers===null?'Download full-size flat TIFF':(input.layers.length?'Download layered TIFF':'Download original-size TIFF');
+  el('saveTiff').textContent=input.overlay?'Download layered TIFF':input.layers===null?'Download full-size flat TIFF':(input.layers.length?'Download layered TIFF':'Download original-size TIFF');
   el('tiffTools').hidden=!tiffSource;el('tiffMsg').textContent='';
-  el('status').textContent=file.name+' · '+input.depth+'-bit RGB · Original '+input.w+' × '+input.h+' px'+(input.layers===null?' · Full-size flat TIFF available. Keep your original for editable layers.':'');return true;
+  el('status').textContent=file.name+' · '+input.depth+'-bit RGB · Original '+input.w+' × '+input.h+' px'+(input.overlay?' · Matching exports above the original layers.':input.layers===null?' · Full-size flat TIFF available. Keep your original for editable layers.':'');return true;
 }if(!['image/jpeg','image/png'].includes(file.type) && !/\.(png|jpe?g)$/i.test(file.name))throw Error();let img=new Image();url=URL.createObjectURL(new Blob([buffer],{type:file.type}));img.src=url;await img.decode();stage(80,'Preparing your matchings…');await pause(24);if(t!==ticket)return false;let scale=Math.min(1,640/Math.max(img.width,img.height));source.width=Math.max(1,Math.round(img.width*scale));source.height=Math.max(1,Math.round(img.height*scale));ctx.imageSmoothingEnabled=false;ctx.drawImage(img,0,0,source.width,source.height);originalPhoto=img;tiffSource=null;init();el('tiffTools').hidden=true;el('status').textContent=file.name+' · Preview '+source.width+' × '+source.height+' px';return true}catch(err){if(t===ticket){tiffSource=null;showLayers();el('layerLabel').hidden=true;el('tiffTools').hidden=true;el('status').textContent=isTiff?(err.message===layerHelp?layerHelp:tiffHelp):'Choose a readable JPG or PNG file.'}return false}finally{if(url)URL.revokeObjectURL(url)}};
 el('sheet').onclick=()=>{let selected=cards.filter(c=>c.check.checked);if(!selected.length){el('status').textContent='Select at least one matching.';el('sheet').textContent='Select a matching first';return}el('sheet').textContent='Save selected as JPG';let s=document.createElement('canvas');drawBoard(s,selected,Math.min(2,selected.length));s.toBlob(blob=>{if(!blob)return;let a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(el('design').value.trim()||'Rang-Studio')+'-matchings.jpg';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),30000)},'image/jpeg',.93)};
 function showBoard(fit){el('hero').hidden=true;el('heroView').setAttribute('aria-pressed','false');
