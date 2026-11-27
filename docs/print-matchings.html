@@ -1840,15 +1840,15 @@ function smartEdgeMix(pixel,colours){
   const x=[colours[a]>>16,colours[a]>>8&255,colours[a]&255],y=[colours[b]>>16,colours[b]>>8&255,colours[b]&255],d=y.map((v,i)=>v-x[i]),den=d.reduce((s,v)=>s+v*v,0);
   if(den<1600)continue;
   const t=p.reduce((s,v,i)=>s+(v-x[i])*d[i],0)/den;
-  if(t<.08||t>.92)continue;
+  if(t<.04||t>.96)continue;
   const err=Math.max(...p.map((v,i)=>Math.abs(v-x[i]-t*d[i])));
-  if(err<=5&&err<best){best=err;result={a,b,t}}
+  if(err<=8&&err<best){best=err;result={a,b,t}}
  }
  return result;
 }
 function smartOutput(pixel,from,to,mix){
  const a=to[mix.a]??from[mix.a],b=to[mix.b]??from[mix.b];let rgb=0;
- for(const shift of [16,8,0]){const oldA=from[mix.a]>>shift&255,oldB=from[mix.b]>>shift&255,newA=a>>shift&255,newB=b>>shift&255;const v=(pixel>>shift&255)+(1-mix.t)*(newA-oldA)+mix.t*(newB-oldB);rgb=rgb*256+Math.max(0,Math.min(255,Math.round(v)))}
+ for(const shift of [16,8,0]){const oldA=from[mix.a]>>shift&255,oldB=from[mix.b]>>shift&255,newA=a>>shift&255,newB=b>>shift&255;const residual=(pixel>>shift&255)-((1-mix.t)*oldA+mix.t*oldB);const v=(1-mix.t)*newA+mix.t*newB+((a===from[mix.a]&&b===from[mix.b])?residual:0);rgb=rgb*256+Math.max(0,Math.min(255,Math.round(v)))}
  return rgb;
 }
 function smartEdgesFor(data,map,from){
