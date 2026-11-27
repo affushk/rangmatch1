@@ -112,17 +112,11 @@ async function sample(){
 function init(){smartGroups=makeSmartGroups();smartPickMode='replace';armRolePicker(false);zoomPoint=null;zoomLevel=0;setZoomTool(false);el('split').value=100;original=ctx.getImageData(0,0,source.width,source.height);counts=new Map();const d=original.data;for(let i=0;i<d.length;i+=4){if(!d[i+3])continue;let k=key(d,i);if(!counts.has(k))counts.set(k,{n:0,i:i/4});counts.get(k).n++}
 let sorted=[...counts].sort((a,b)=>b[1].n-a[1].n);el('pick').replaceChildren(...sorted.slice(0,24).map(([k])=>new Option(hex(k),k)));seed=sorted[0]?.[1].i??0;
   edits.clear();directPick=false;el('directPickHint').textContent='';manualLayers.clear();el('manualLayerMode').checked=false;el('exportMode').value='original';slotTolerance.fill(null);sources=[];
-  if(sorted.length){
-    sources.push(sorted[0][0]);
-    // Choose printable motif inks before neutral areas such as a white panel margin.
-    const accents=sorted.slice(1).filter(([k])=>tone(k).c>=24);
-    for(const [colour] of [...accents,...sorted.slice(1)]){
-      if(sources.length===3)break;
-      if(sources.every(value=>distance(value,colour)>48))sources.push(colour);
-    }
-  }
-  if(floralMaster&&originalPhoto===floralMaster)sources=[0x064B55,0xB52360,0x4F793D,0xC89838,0xEFC1A0];
-  monoPicks=sources.slice(0,3);const demo=!!floralMaster&&originalPhoto===floralMaster;layerPicks=sources.slice(0,demo?5:2);el('slotCount').value=demo?5:2;if(demo){el('mood').value='Dark Rich Market';el('method').value='full';el('split').value=0}syncPicks();
+  const detected=detectStudioColours(sorted,5);
+  sources=detected.map(v=>v.ink);
+  smartGroups=makeSmartGroups();detected.forEach((v,i)=>Object.assign(smartGroups[i],{mode:v.mode,auto:true,tol:v.tol,detectedTol:v.tol}));
+  if(floralMaster&&originalPhoto===floralMaster){sources=[0x064B55,0xB52360,0x4F793D,0xC89838,0xEFC1A0];}
+  monoPicks=sources.slice(0,3);layerPicks=sources.slice();el('slotCount').value=String(Math.max(1,sources.length));if(floralMaster&&originalPhoto===floralMaster){el('mood').value='Dark Rich Market';el('method').value='full';el('split').value=0}syncPicks();
   activeRole=0;
   roles.forEach((_,i)=>el('lock'+i).checked=false);
   if(tiffSource?.layers?.length)autoSelectLayers();
@@ -266,7 +260,7 @@ function assignRoleColour(k){
     el('pickHint').textContent='This colour belongs to '+roles[existing]+'. Pick another shade or edit that role.';
     return;
   }
-  if(smartRangeActive()){smartGroups[activeRole].plus=[];smartGroups[activeRole].minus=[]}
+  if(smartRangeActive()){smartGroups[activeRole].plus=[];smartGroups[activeRole].minus=[];smartGroups[activeRole].detectedTol=25}
   (monoActive?monoPicks:layerPicks)[activeRole]=k;
   syncPicks();
   armRolePicker(false);
@@ -1782,10 +1776,25 @@ el('mobileMatchQuick').onclick=()=>{setTools(true);el('mood').scrollIntoView({bl
 const paletteObserver=new MutationObserver(()=>{for(const card of cards){if(!card.inks)continue;const article=card.canvas.closest('article');let p=article.querySelector('.cardPalette');if(!p){p=document.createElement('div');p.className='cardPalette';article.append(p)}const key=card.inks.join(',');if(p.dataset.inks===key)continue;p.dataset.inks=key;p.replaceChildren(...card.inks.map(ink=>{const s=document.createElement('span');s.style.background=ink;s.title=ink;return s}))}});
 paletteObserver.observe(el('cards'),{subtree:true,childList:true,characterData:true});
 
+function detectStudioColours(sorted,max=5){
+ const total=sorted.reduce((s,v)=>s+v[1].n,0);if(!total)return [];
+ // Quantize only for detection; representative colours remain actual image RGB values.
+ const buckets=new Map();
+ for(const [ink,v] of sorted){const k=((ink>>20)<<8)|(((ink>>12)&15)<<4)|((ink>>4)&15);let b=buckets.get(k);if(!b){b={ink,n:0,peak:0};buckets.set(k,b)}b.n+=v.n;if(v.n>b.peak){b.peak=v.n;b.ink=ink}}
+ const bins=[...buckets.values()].sort((a,b)=>b.n-a.n),chosen=[];
+ for(const b of bins){
+  if(b.n<Math.max(3,total*.00065))continue;
+  if(chosen.every(v=>distance(v.ink,b.ink)>30)){chosen.push(b);if(chosen.length===max)break}
+ }
+ if(!chosen.length)chosen.push(bins[0]);
+ const stats=chosen.map(()=>({n:0,near:0,spread:[]}));
+ for(const b of bins){let best=Infinity,idx=0;chosen.forEach((v,i)=>{const d=distance(v.ink,b.ink);if(d<best){best=d;idx=i}});const s=stats[idx];s.n+=b.n;if(best<=12)s.near+=b.n;const d=rangeDistance(tone(chosen[idx].ink),b.ink);if(Number.isFinite(d))s.spread.push([d,b.n]);}
+ return chosen.map((v,i)=>{const s=stats[i];s.spread.sort((a,b)=>a[0]-b[0]);let n=0,q=0;const weight=s.spread.reduce((a,b)=>a+b[1],0);for(const [d,w] of s.spread){n+=w;q=d;if(n>=weight*.9)break}const solid=s.near>=s.n*.94;return {ink:v.ink,mode:solid&&s.near===s.n&&v.peak>=s.n*.98?'solid':'range',tol:solid?Math.max(3,Math.min(12,Math.ceil(q+3))):Math.max(8,Math.min(60,Math.ceil(q+4)))}});
+}
 function makeSmartGroups(){return Array.from({length:5},(_,i)=>({mode:i===0?'solid':'range',auto:true,tol:25,plus:[],minus:[]}))}
 let smartGroups=makeSmartGroups(),smartPickMode='replace';
 function smartRangeActive(){return el('smartRange').checked&&el('method').value==='full'&&!manualActive()}
-function smartLimit(g){return g.auto?25:g.tol}
+function smartLimit(g){return g.auto?(g.detectedTol??25):g.tol}
 function smartClassify(pixel,colours){
  let winner=-1,best=Infinity;
  // Exact anchor colours always win, including locked groups.
@@ -1815,7 +1824,7 @@ function renderSmartPanel(map,full){
   }
   row.append(tools);
   if(g.mode==='range'){
-   const auto=document.createElement('label'),ck=document.createElement('input');ck.type='checkbox';ck.checked=g.auto;ck.onchange=()=>{g.auto=ck.checked;render()};auto.append(ck,' Suggested tolerance (25)');row.append(auto);
+   const auto=document.createElement('label'),ck=document.createElement('input');ck.type='checkbox';ck.checked=g.auto;ck.onchange=()=>{g.auto=ck.checked;render()};auto.append(ck,' Auto tolerance ('+smartLimit(g)+')');row.append(auto);
    const slider=document.createElement('input');slider.type='range';slider.min=0;slider.max=80;slider.value=smartLimit(g);slider.disabled=g.auto;slider.setAttribute('aria-label','Group '+(i+1)+' tolerance');slider.onchange=()=>{g.tol=Number(slider.value);render()};row.append(slider,document.createTextNode(' Tolerance '+smartLimit(g)));
    const info=document.createElement('small');info.textContent='Added '+g.plus.length+' · Excluded '+g.minus.length;row.append(info);
    const reset=document.createElement('button');reset.textContent='Clear extra picks';reset.onclick=()=>{g.plus=[];g.minus=[];render()};row.append(reset);
