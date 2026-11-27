@@ -406,8 +406,9 @@ function layerPixel(layer,x,y){
 function coverage(file,layer,p){
   if(p<0||layer.hidden)return 0;
   const alpha=layer.planes[-1];
-  if(alpha===undefined)return 1;
-  return file.depth===16?nativeLayerValue(file.bytes,alpha,p)/65535:file.bytes[alpha+p]/255;
+  const opacity=(layer.opacity??255)/255;
+  if(alpha===undefined)return opacity;
+  return opacity*(file.depth===16?nativeLayerValue(file.bytes,alpha,p)/65535:file.bytes[alpha+p]/255);
 }
 function scopedColour(file,index,x,y,sourceColour,tolerance,rule=null){
   const layer=file.layers[index],p=layerPixel(layer,x,y);
@@ -420,7 +421,7 @@ function scopedColour(file,index,x,y,sourceColour,tolerance,rule=null){
     const upper=file.layers[i];
     weight*=1-coverage(file,upper,layerPixel(upper,x,y));
   }
-  return {colour,weight,p};
+  return {colour,weight,p,file,index,x,y};
 }
 function detailColour(pixel,sourceInk,target){
   if(pixel===sourceInk||target===sourceInk)return pixel===sourceInk?target:pixel;
@@ -434,6 +435,7 @@ function detailColour(pixel,sourceInk,target){
   return result;
 }
 function tintComposite(data,p,hit,target){
+  if(hit.file?.layers.some(l=>l.blend==='mul ')){const d=blendedDelta(hit.file,hit.x,hit.y,(i,old)=>i===hit.index?target:old);for(let k=0;k<3;k++)data[p+k]=Math.max(0,Math.min(255,Math.round(data[p+k]+d[k])));return}
   for(let i=0;i<3;i++){
     const shift=16-8*i;
     const delta=((target>>shift)&255)-((hit.colour>>shift)&255);
@@ -658,7 +660,24 @@ function manualTargets(index){
   while(base.length<picks.length){const k=parseInt(base[base.length-1].slice(1),16);base.push(hex(mixInk(k,base.length===3?0xffffff:0,.35)))}
   return picks.map((_,i)=>custom[i]||base[i]);
 }
+function blendedDelta(file,x,y,recolour){
+  let a=0;const before=[0,0,0],after=[0,0,0];
+  for(let i=0;i<file.layers.length;i++){
+    const layer=file.layers[i],p=layerPixel(layer,x,y),s=coverage(file,layer,p);
+    if(!s)continue;
+    const old=layerColour(file,layer,p),next=recolour(i,old),newAlpha=s+a*(1-s);
+    for(let k=0;k<3;k++){
+      const shift=16-8*k,b=(old>>shift)&255,n=(next>>shift)&255;
+      const mix=(back,ink)=>layer.blend==='mul '?ink*(1-a+a*back/255):ink;
+      before[k]=(before[k]*a*(1-s)+s*mix(before[k],b))/newAlpha;
+      after[k]=(after[k]*a*(1-s)+s*mix(after[k],n))/newAlpha;
+    }
+    a=newAlpha;
+  }
+  return after.map((v,k)=>a*(v-before[k]));
+}
 function manualDelta(file,picks,targets,x,y){
+  if(file.layers.some(l=>l.blend==='mul '))return blendedDelta(file,x,y,(i,old)=>{const j=picks.findIndex(p=>p.index===i);return j<0?old:detailColour(old,picks[j].ink,targets[j])});
   const delta=[0,0,0];
   for(let j=0;j<picks.length;j++){
     const {index,ink}=picks[j],layer=file.layers[index],p=layerPixel(layer,x,y);
@@ -772,7 +791,7 @@ function render(){
     const ramp=full&&family==='Mono'?monoRamp(parseInt(targets[0].slice(1),16)):null;
     const img=new ImageData(new Uint8ClampedArray(original.data),source.width,source.height);
     for(let i=0;i<map.length;i++){
-      if(hits){if(hits[i]?.weight)tintComposite(img.data,i*4,hits[i],tint(hits[i].colour,sourceInk,values[0]));continue}
+      if(hits){if(hits[i])tintComposite(img.data,i*4,hits[i],tint(hits[i].colour,sourceInk,values[0]));continue}
       const role=map[i]-1,target=values[role];
       if(target==null&&!(ramp&&role<0&&original.data[i*4+3]))continue;
       const pixel=key(original.data,i*4);
@@ -840,8 +859,8 @@ function readLayers(bytes,item,namesOnly=false,depth=8){
       channels.push({id,length,lengthField});
     }
     if(str(4)!==sig)fail();
-    const blend=str(4),opacity=block[take(1)];
-    if(!namesOnly&&(blend!==(le?'mron':'norm')||opacity!==255))fail();
+    const rawBlend=str(4),blend=le?rawBlend.split('').reverse().join(''):rawBlend,opacity=block[take(1)];
+    if(!namesOnly&&!['norm','mul '].includes(blend))fail();
     const clipping=block[take(1)],hidden=Boolean(block[take(1)]&2);take(1);if(clipping&&!namesOnly)fail();
     const end=pos+4+long();
     if(end>limit)fail();
@@ -862,7 +881,7 @@ function readLayers(bytes,item,namesOnly=false,depth=8){
       if((key==='lsct'||key==='lsdk')&&n>=4)section=view.getUint32(start,le);
     }
     if(pos!==end)fail();
-    if(section!==3)layers.push({size,width,height,left,top,hidden,name,section,channels,planes:[]});
+    if(section!==3)layers.push({size,width,height,left,top,hidden,name,section,blend,opacity,channels,planes:[]});
   }
   if(namesOnly){
     const dataEnd=pos+layers.reduce((n,l)=>n+l.channels.reduce((s,c)=>s+c.length,0),0);
@@ -1249,7 +1268,7 @@ async function exportTiff(file,from,to,tolerance,scope=-1,rule=null,matchingName
         if(!hit)continue;
         if(!coverage(file,layer,hit.p))continue;
         const colour=(rule?rangeTint:detailColour)(hit.colour,from[0],v);
-        if(hit.weight)tintComposite(out,dst,hit,colour);
+        tintComposite(out,dst,hit,colour);
         out[r+hit.p]=colour>>16;out[g+hit.p]=colour>>8&255;out[b+hit.p]=colour&255;
       }
       if(y%64===63)await new Promise(resolve=>setTimeout(resolve,0));
@@ -1435,7 +1454,7 @@ function drawHero(){
       if(rangeRule&&!rangeRule.inside(Math.floor(xs[x]*rangeRule.w/w),Math.floor(ys[y]*rangeRule.h/h)))continue;
       if(scope>=0){
         const hit=scopedColour(file,scope,xs[x],ys[y],ink,tol,rangeRule);
-        if(hit?.weight)tintComposite(img.data,i,hit,tint(hit.colour,ink,values[0]));continue;
+        if(hit)tintComposite(img.data,i,hit,tint(hit.colour,ink,values[0]));continue;
       }
       const role=full?rolesAt[i/4]-1:0;
       if(full?(role<0?!ramp:el('lock'+role).checked):rangeRule?!rangeRule.accepts(colour):distance(ink,colour)>tol)continue;
