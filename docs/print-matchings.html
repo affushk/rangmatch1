@@ -357,6 +357,15 @@ for(const [family,rows] of Object.entries(curatedMarketV26)){
   companion[family]=rows.map(row=>row.split(' ').slice(1));
 }
 
+// V2.7: approved six-colour Pakistani light collection.
+const pakistaniV27=["FFF5E3 922D43 C65D70 C58D55 74834C E5B9A1","E5EDC9 B65C35 65743C D49A43 754638 EBC5A3","F9DDE5 80334E B77994 68704B C69B63 E6A2A9","DDEFFA 304B98 718BB9 D9A64D 465B78 F4D6B5","FBE1C9 75432F C17A53 92994D E6A447 A54D40","EDE0F7 75408C B17BC0 585078 B8BC79 E2B1CB","FFF4B7 B88620 7A6534 526B38 D4773F E6C66D","DDF3E3 26744C 83A96B B97542 E1AD66 4B5740","FFF0D8 B83C30 D58D53 775139 87924D E7B365","EDEDED 39383E 88848E A74F5A C3A578 626C79","FFE2C4 D65D52 A86B46 E9AC76 6D7949 963C40","F0E1CD 674936 B08C68 9E6A42 666A3F D5B79A","DCEBF5 169C9D 315C79 D8A052 9ACCC1 F1C8A0","F9DFEA B82F78 844568 D17A9E 9B8C48 E5B77D","EDF2CB 77872D B0A24F 4B5D31 C98744 E5C58A","E4E3FA 393C82 827AB5 C99BB7 B4A065 5B628D"];
+const pakistaniNamesV27=["Ivory Maroon","Pista Rust","Baby Pink Wine","Sky Blue Royal","Peach Chocolate","Lilac Purple","Lemon Mustard","Mint Emerald","Cream Sindoori","Pearl Charcoal","Apricot Coral","Beige Coffee","Powder Blue Firozi","Rose Rani","Lime Olive","Lavender Indigo"];
+for(const family of ['Light Bright Market','Pakistani Matching']){
+ palettes[family]=pakistaniV27.map(row=>'#'+row.split(' ')[0]);
+ companion[family]=pakistaniV27.map(row=>row.split(' ').slice(1));
+ curatedNamesV26[family]=pakistaniNamesV27.slice();
+ if(![...el('mood').options].some(o=>o.value===family))el('mood').add(new Option(family));
+}
 const edits=new Map();
 function editKey(index){return [el('method').value,el('mood').value,selectedLayer(),index,manualActive()?manualSelected().map(x=>x.index+':'+x.role).join(','):''].join('/')}
 function sheetLayout(w,h,count,columns){
@@ -864,7 +873,7 @@ function render(){
       const fitted=parseInt(fitGround(ground,lights).slice(1),16);
       defaults[0]=hex(mixInk(parseInt(ground.slice(1),16),fitted,.45));
     }
-    let targets=coordinatedInks(family,defaults,edits.get(editKey(j)),full);if(full){const baseTargets=targets.slice();targets=Array.from({length:Math.max(pickCount(),baseTargets.length)},(_,i)=>{if(el('lock'+i).checked&&sources[i]!=null)return hex(sources[i]);const edited=edits.get(editKey(j))?.[i];if(edited)return edited;if(baseTargets[i]||defaults[i])return baseTargets[i]||defaults[i];const anchor=sources[i];if(anchor==null)return baseTargets[0];let best=Infinity,ref=0;for(let k=0;k<Math.min(5,sources.length,baseTargets.length);k++){if(sources[k]==null)continue;const d=distance(anchor,sources[k]);if(d<best){best=d;ref=k}}const target=parseInt(baseTargets[ref].slice(1),16);return hex(rangeTint(anchor,sources[ref],target))})}
+    let targets=coordinatedInks(family,defaults,edits.get(editKey(j)),full);if(full){const baseTargets=targets.slice();targets=Array.from({length:Math.max(pickCount(),baseTargets.length)},(_,i)=>{if(el('lock'+i).checked&&sources[i]!=null)return hex(sources[i]);const edited=edits.get(editKey(j))?.[i];if(edited)return edited;if(baseTargets[i]||defaults[i])return baseTargets[i]||defaults[i];const anchor=sources[i];if(anchor==null)return baseTargets[0];let best=Infinity,ref=0;for(let k=0;k<Math.min(baseTargets.length,sources.length);k++){if(sources[k]==null)continue;const d=distance(anchor,sources[k]);if(d<best){best=d;ref=k}}const target=parseInt(baseTargets[ref].slice(1),16);return hex(rangeTint(anchor,sources[ref],target))})}
     const values=targets.map((c,i)=>full&&(el('lock'+i).checked||sources[i]==null)?null:parseInt(c.slice(1),16));
     const ramp=full&&family==='Mono'&&!smartRangeActive()?monoRamp(parseInt(targets[0].slice(1),16)):null;
     const img=new ImageData(new Uint8ClampedArray(original.data),source.width,source.height);
