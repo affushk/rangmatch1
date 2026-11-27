@@ -1824,7 +1824,18 @@ function smartClassify(pixel,colours){
  for(let i=0;i<colours.length;i++){const ink=colours[i],g=smartGroups[i];if(ink==null||g.mode!=='range'||!g.auto)continue;
  const limit=smartLimit(g);if(g.minus.some(k=>distance(k,pixel)<=8||rangeDistance(tone(k),pixel)<=Math.min(10,limit)))continue;
  const d=distance(ink,pixel);if(d<=Math.min(14,Math.max(7,limit+4))&&d<best){best=d;win=i}}
- return win;
+ // V2.5: recover unassigned tonal shades only when the hue family is unambiguous.
+ if(win>=0)return win;
+ const p=tone(pixel),candidates=[];
+ for(let i=0;i<colours.length;i++){
+  const ink=colours[i],g=smartGroups[i];if(ink==null||!g||g.mode!=='range'||!g.auto)continue;
+  if(g.minus.some(k=>distance(k,pixel)<=8||rangeDistance(tone(k),pixel)<=Math.min(10,smartLimit(g))))continue;
+  const q=tone(ink),dh=Math.abs(p.h-q.h),h=Math.min(dh,360-dh);
+  if(p.c<18||q.c<18||h>12||Math.abs(p.y-q.y)>95||Math.abs(p.c-q.c)>65)continue;
+  candidates.push({i,score:h*2+Math.abs(p.y-q.y)*.12+Math.abs(p.c-q.c)*.12});
+ }
+ candidates.sort((a,b)=>a.score-b.score);
+ return candidates.length&&(!candidates[1]||candidates[1].score-candidates[0].score>=6)?candidates[0].i:-1;
 }
 function smartTint(pixel,ink,target,role){return smartGroups[role].mode==='solid'?target:rangeTint(pixel,ink,target)}
 // Recover only RGB mixtures that closely fit two selected inks, leaving ambiguous details unchanged.
@@ -1842,7 +1853,7 @@ function smartEdgeMix(pixel,colours){
   const t=p.reduce((s,v,i)=>s+(v-x[i])*d[i],0)/den;
   if(t<.04||t>.96)continue;
   const err=Math.max(...p.map((v,i)=>Math.abs(v-x[i]-t*d[i])));
-  if(err<=8&&err<best){best=err;result={a,b,t}}
+  if(err<=12&&err<best){best=err;result={a,b,t}}
  }
  return result;
 }
