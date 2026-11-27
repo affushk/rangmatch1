@@ -406,7 +406,7 @@ function layerPixel(layer,x,y){
 function coverage(file,layer,p){
   if(p<0||layer.hidden)return 0;
   const alpha=layer.planes[-1];
-  const opacity=(layer.opacity??255)/255;
+  const opacity=(layer.opacity??255)/255*(layer.fillOpacity??255)/255;
   if(alpha===undefined)return opacity;
   return opacity*(file.depth===16?nativeLayerValue(file.bytes,alpha,p)/65535:file.bytes[alpha+p]/255);
 }
@@ -859,7 +859,7 @@ function readLayers(bytes,item,namesOnly=false,depth=8){
       channels.push({id,length,lengthField});
     }
     if(str(4)!==sig)fail();
-    const rawBlend=str(4),blend=le?rawBlend.split('').reverse().join(''):rawBlend,opacity=block[take(1)];
+    const rawBlend=str(4),blend=le?rawBlend.split('').reverse().join(''):rawBlend,opacity=block[take(1)];let fillOpacity=255;
     if(!namesOnly&&!['norm','mul '].includes(blend))fail();
     const clipping=block[take(1)],hidden=Boolean(block[take(1)]&2);take(1);if(clipping&&!namesOnly)fail();
     const end=pos+4+long();
@@ -870,8 +870,9 @@ function readLayers(bytes,item,namesOnly=false,depth=8){
     while(pos<end){
       if(str(4)!==sig)fail();
       const rawKey=str(4),key=le?rawKey.split('').reverse().join(''):rawKey;
-      if(!namesOnly&&!['luni','lnsr','lyid','clbl','infx','knko','lspf','lclr','shmd','fxrp'].includes(key))fail();
+      if(!namesOnly&&!['luni','lnsr','lyid','clbl','infx','knko','lspf','lclr','shmd','fxrp','iOpa'].includes(key))fail();
       const n=long(),start=take(n+(n%2));
+      if(key==='iOpa'&&n>=1)fillOpacity=block[start];
       if(key==='luni'&&n>=4){
         const chars=view.getUint32(start,le);
         if(chars*2>n-4)fail();
@@ -881,7 +882,7 @@ function readLayers(bytes,item,namesOnly=false,depth=8){
       if((key==='lsct'||key==='lsdk')&&n>=4)section=view.getUint32(start,le);
     }
     if(pos!==end)fail();
-    if(section!==3)layers.push({size,width,height,left,top,hidden,name,section,blend,opacity,channels,planes:[]});
+    if(section!==3)layers.push({size,width,height,left,top,hidden,name,section,blend,opacity,fillOpacity,channels,planes:[]});
   }
   if(namesOnly){
     const dataEnd=pos+layers.reduce((n,l)=>n+l.channels.reduce((s,c)=>s+c.length,0),0);
