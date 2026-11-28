@@ -16,8 +16,15 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+      - name: Use preinstalled Android SDK
+        run: |
+          SDK="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          test -x "$SDK/cmdline-tools/latest/bin/sdkmanager"
+          echo "ANDROID_HOME=$SDK" >> "$GITHUB_ENV"
+          echo "$SDK/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
+          if [ ! -f "$SDK/platforms/android-35/android.jar" ] || [ ! -x "$SDK/build-tools/35.0.0/aapt2" ]; then
+            "$SDK/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$SDK" "platforms;android-35" "build-tools;35.0.0"
+          fi
       - name: Prepare Android project
         run: |
           mkdir -p app/src/main/assets app/src/main/java/com/atdesigner/app
@@ -36,9 +43,10 @@ jobs:
             protected void onActivityResult(int r,int c,Intent d){super.onActivityResult(r,c,d);if(r==42&&picker!=null){picker.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(c,d));picker=null;}}
           }
           EOF
-          sdkmanager "platforms;android-35" "build-tools;35.0.0"
       - run: gradle :app:assembleDebug
+      - name: Name APK
+        run: cp app/build/outputs/apk/debug/app-debug.apk AT-Designer.apk
       - uses: actions/upload-artifact@v4
         with:
           name: AT-Designer-APK
-          path: app/build/outputs/apk/debug/app-debug.apk
+          path: AT-Designer.apk
