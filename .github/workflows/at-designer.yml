@@ -27,6 +27,9 @@ jobs:
           fi
       - name: Prepare Android project
         run: |
+          mkdir -p "$RUNNER_TEMP/at-designer-build"
+          cp -r docs "$RUNNER_TEMP/at-designer-build/docs"
+          cd "$RUNNER_TEMP/at-designer-build"
           mkdir -p app/src/main/assets app/src/main/java/com/atdesigner/app
           cp -r docs/. app/src/main/assets/
           echo "pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }; dependencyResolutionManagement { repositories { google(); mavenCentral() } }; rootProject.name='ATDesigner'; include ':app'" > settings.gradle
@@ -43,9 +46,9 @@ jobs:
             protected void onActivityResult(int r,int c,Intent d){super.onActivityResult(r,c,d);if(r==42&&picker!=null){picker.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(c,d));picker=null;}}
           }
           EOF
-      - run: gradle :app:assembleDebug
+      - run: gradle -p "$RUNNER_TEMP/at-designer-build" :app:assembleDebug --stacktrace
       - name: Name APK
-        run: cp app/build/outputs/apk/debug/app-debug.apk AT-Designer.apk
+        run: cp "$RUNNER_TEMP/at-designer-build/app/build/outputs/apk/debug/app-debug.apk" AT-Designer.apk
       - uses: actions/upload-artifact@v4
         with:
           name: AT-Designer-APK
