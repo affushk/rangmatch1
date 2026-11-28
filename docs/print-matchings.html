@@ -948,17 +948,17 @@ function readLayers(bytes,item,namesOnly=false,depth=8){
     }
     if(str(4)!==sig)fail();
     const rawBlend=str(4),blend=le?rawBlend.split('').reverse().join(''):rawBlend,opacity=block[take(1)];let fillOpacity=255;
-    if(!namesOnly&&!['norm','mul ','fdiv'].includes(blend))fail();
+    if(!namesOnly&&!['norm','mul ','fdiv'].includes(blend))throw Error('Unsupported blend mode: '+blend+' at byte '+pos);
     const clipping=block[take(1)],hidden=Boolean(block[take(1)]&2);take(1);if(clipping&&!namesOnly)fail();
     const end=pos+4+long();
     if(end>limit)fail();
-    const maskBytes=long();if(maskBytes&&!namesOnly)fail();take(maskBytes);
+    const maskBytes=long();if(maskBytes&&!namesOnly)throw Error('Layer mask present at byte '+pos);take(maskBytes);
     const ranges=long();take(ranges);
     const nameSize=block[take(1)];let name=str(nameSize),section=0;take((4-(nameSize+1)%4)%4);
     while(pos<end){
       if(str(4)!==sig)fail();
       const rawKey=str(4),key=le?rawKey.split('').reverse().join(''):rawKey;
-      if(!namesOnly&&!['luni','lnsr','lyid','clbl','infx','knko','lspf','lclr','shmd','fxrp','iOpa'].includes(key))fail();
+      if(!namesOnly&&!['luni','lnsr','lyid','clbl','infx','knko','lspf','lclr','shmd','fxrp','iOpa','lmgm','vmgm','tsly','lspf','lyvr','lnsr','sn2P','lclr','brst','fxrp'].includes(key))throw Error('Unsupported Photoshop layer metadata: '+key+' at byte '+pos);
       const n=long(),start=take(n+(n%2));
       if(key==='iOpa'&&n>=1)fillOpacity=block[start];
       if(key==='luni'&&n>=4){
