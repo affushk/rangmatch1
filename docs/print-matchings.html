@@ -119,7 +119,7 @@ let sorted=[...counts].sort((a,b)=>b[1].n-a[1].n);el('pick').replaceChildren(...
   monoPicks=sources.slice(0,3);layerPicks=sources.slice();el('slotCount').value=String(Math.max(1,sources.length));if(floralMaster&&originalPhoto===floralMaster){el('mood').value='Dark Rich Market';el('method').value='full';el('split').value=0}syncPicks();
   activeRole=0;
   roles.forEach((_,i)=>el('lock'+i).checked=false);
-  if(tiffSource?.layers?.length)autoSelectLayers();
+  if(tiffSource?.layers?.length){autoSelectLayers();el('manualLayerMode').checked=false;el('method').value='full';}
   historyReset();render()}
 let rangeRule=null;
 function tone(rgb){
