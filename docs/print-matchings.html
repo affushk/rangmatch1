@@ -1299,7 +1299,9 @@ async function compressedOriginalExport(file,match,rule){
  const layers=file.compressedOriginal,{headerEnd,tailStart,le,item}=layers.layout;
  const block=file.bytes.subarray(item.start,item.start+item.n),src=new DataView(block.buffer,block.byteOffset,block.length);
  const head=block.slice(0,headerEnd),hv=new DataView(head.buffer),parts=[head];let end=headerEnd;
- for(const l of layers){
+ const started=performance.now(),total=layers.reduce((n,l)=>n+l.size,0)+file.w*file.h;let done=0,layerNo=0;
+ function progress(message){const p=Math.min(99,Math.floor(done*100/total));el('meter').hidden=false;el('percent').textContent=p+'%';el('fileProgress').value=p;el('busyText').textContent=message+' · '+Math.floor((performance.now()-started)/1000)+'s';}
+ for(const l of layers){layerNo++;progress('Layer '+layerNo+'/'+layers.length);
   const readers=new Map(l.channels.map(c=>[c.id,{c,p:c.start+2*l.height,row:new Uint8Array(l.width)}]));
   const writers=new Map(l.channels.filter(c=>c.id>=0).map(c=>[c.id,{table:new Uint8Array(2*l.height),parts:[],pending:[],length:2+2*l.height}]));
   const enc=new Uint8Array(2*l.width+2);
@@ -1316,15 +1318,15 @@ async function compressedOriginalExport(file,match,rule){
    const r=readers.get(0).row,g=readers.get(1).row,b=readers.get(2).row,a=readers.get(-1)?.row;
    for(let x=0;x<l.width;x++){if(a&&!a[x]||rule&&!rule.inside(l.left+x,l.top+y))continue;const v=match(r[x]*65536+g[x]*256+b[x]);if(v!=null){r[x]=v>>16;g[x]=v>>8&255;b[x]=v&255}}
    for(const [id,w] of writers){const n=packMatchingRow(readers.get(id).row,enc,0);if(n>65535)throw Error('RLE row exceeds TIFF limit');new DataView(w.table.buffer).setUint16(y*2,n,le);w.length+=n;w.pending.push(enc.slice(0,n));if(y%64===63||y===l.height-1){w.parts.push(new Blob(w.pending));w.pending=[]}}
-   if(y%64===63)await new Promise(r=>setTimeout(r,0));
+   done+=l.width;if(y%16===15||y===l.height-1){progress('Layer '+layerNo+'/'+layers.length+' · row '+(y+1)+'/'+l.height);await new Promise(r=>setTimeout(r,0));}
   }
   for(const c of l.channels){const w=writers.get(c.id);if(!w){parts.push(block.subarray(c.start-2,c.start+c.length-2));end+=c.length;continue}hv.setUint32(c.lengthField,w.length,le);parts.push(new Uint8Array(le?[1,0]:[0,1]),w.table,...w.parts);end+=w.length}
  }
  hv.setUint32(44,end-48,le);parts.push(new Uint8Array((4-end%4)%4),block.subarray(tailStart));
- const lb=new Blob(parts),flat=flatMatchingSource({...file,overlay:true}),offset=Math.ceil(flat.bytes.length/4)*4;
+ progress('Preparing composite');await new Promise(r=>setTimeout(r,0));const lb=new Blob(parts),flat=flatMatchingSource({...file,overlay:true}),offset=Math.ceil(flat.bytes.length/4)*4;
  if(offset+lb.size>=2**32)throw Error('Compressed output exceeds classic TIFF limit');
- for(let y=0;y<flat.h;y++){let p=flat.offsets[0]+y*flat.w*3;for(let x=0;x<flat.w;x++,p+=3){if(rule&&!rule.inside(x,y))continue;const v=match(key(flat.bytes,p));if(v!=null){flat.bytes[p]=v>>16;flat.bytes[p+1]=v>>8&255;flat.bytes[p+2]=v&255}}if(y%64===63)await new Promise(r=>setTimeout(r,0))}
- const d=new DataView(flat.bytes.buffer);d.setUint32(flat.layerEntry+4,lb.size,file.little);d.setUint32(flat.layerEntry+8,offset,file.little);
+ for(let y=0;y<flat.h;y++){let p=flat.offsets[0]+y*flat.w*3;for(let x=0;x<flat.w;x++,p+=3){if(rule&&!rule.inside(x,y))continue;const v=match(key(flat.bytes,p));if(v!=null){flat.bytes[p]=v>>16;flat.bytes[p+1]=v>>8&255;flat.bytes[p+2]=v&255}}done+=flat.w;if(y%16===15||y===flat.h-1){progress('Composite · row '+(y+1)+'/'+flat.h);await new Promise(r=>setTimeout(r,0))}}
+ progress('Finalizing TIFF');await new Promise(r=>setTimeout(r,0));const d=new DataView(flat.bytes.buffer);d.setUint32(flat.layerEntry+4,lb.size,file.little);d.setUint32(flat.layerEntry+8,offset,file.little);
  return new Blob([flat.bytes,new Uint8Array(offset-flat.bytes.length),lb],{type:'image/tiff'});
 }
 async function exportTiff(file,from,to,tolerance,scope=-1,rule=null,matchingName="Matching",ramp=null,contrast=false,overrides=null){
@@ -1339,7 +1341,7 @@ async function exportTiff(file,from,to,tolerance,scope=-1,rule=null,matchingName
   const smart=smartRangeActive(),classify=contrast&&!smart?contrastClassifier(from,tolerance,overrides):null;
   const smartCache=new Map();
   function match(colour){
-      if(smart){if(smartCache.has(colour))return smartCache.get(colour);const role=smartClassify(colour,from),edge=role<0?smartEdgeMix(colour,from):null,v=edge?smartOutput(colour,from,to,edge):to[role]==null?null:smartTint(colour,from[role],to[role],role);if(smartCache.size<65536)smartCache.set(colour,v);return v}
+      if(smart){if(smartCache.has(colour))return smartCache.get(colour);const role=smartClassify(colour,from),edge=role<0?smartEdgeMix(colour,from):null,v=edge?smartOutput(colour,from,to,edge):to[role]==null?null:smartTint(colour,from[role],to[role],role);if(smartCache.size<1048576)smartCache.set(colour,v);return v}
       if(classify){
         const role=classify(colour);
         return to[role]==null?null:rangeTint(colour,from[role],to[role]);
