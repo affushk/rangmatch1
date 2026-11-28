@@ -1295,6 +1295,38 @@ async function matchingOverlay(file,flat,name){
   return new Blob([flat.bytes,new Uint8Array(offset-flat.bytes.length),layerBlock],{type:'image/tiff'});
 }
 
+async function compressedOriginalExport(file,match,rule){
+ const layers=file.compressedOriginal,{headerEnd,tailStart,le,item}=layers.layout;
+ const block=file.bytes.subarray(item.start,item.start+item.n),src=new DataView(block.buffer,block.byteOffset,block.length);
+ const head=block.slice(0,headerEnd),hv=new DataView(head.buffer),parts=[head];let end=headerEnd;
+ for(const l of layers){
+  const readers=new Map(l.channels.map(c=>[c.id,{c,p:c.start+2*l.height,row:new Uint8Array(l.width)}]));
+  const writers=new Map(l.channels.filter(c=>c.id>=0).map(c=>[c.id,{table:new Uint8Array(2*l.height),parts:[],pending:[],length:2+2*l.height}]));
+  const enc=new Uint8Array(2*l.width+2);
+  for(let y=0;y<l.height;y++){
+   for(const {c,row} of readers.values()){
+    const q=readers.get(c.id);
+    if(c.compression===0){row.set(block.subarray(c.start+y*l.width,c.start+(y+1)*l.width));continue}
+    if(c.compression!==1)throw Error('Streaming supports raw and RLE channels only');
+    const stop=q.p+src.getUint16(c.start+2*y,le);let x=0;
+    if(stop>c.start+c.length-2)throw Error('Invalid RLE row');
+    while(q.p<stop){const n=block[q.p++];if(n===128)continue;const k=n<128?n+1:257-n;if(x+k>row.length||q.p+(n<128?k:1)>stop)throw Error('Invalid RLE packet');if(n<128){row.set(block.subarray(q.p,q.p+k),x);q.p+=k}else row.fill(block[q.p++],x,x+k);x+=k}
+    if(x!==row.length)throw Error('Incomplete RLE row');
+   }
+   const r=readers.get(0).row,g=readers.get(1).row,b=readers.get(2).row,a=readers.get(-1)?.row;
+   for(let x=0;x<l.width;x++){if(a&&!a[x]||rule&&!rule.inside(l.left+x,l.top+y))continue;const v=match(r[x]*65536+g[x]*256+b[x]);if(v!=null){r[x]=v>>16;g[x]=v>>8&255;b[x]=v&255}}
+   for(const [id,w] of writers){const n=packMatchingRow(readers.get(id).row,enc,0);if(n>65535)throw Error('RLE row exceeds TIFF limit');new DataView(w.table.buffer).setUint16(y*2,n,le);w.length+=n;w.pending.push(enc.slice(0,n));if(y%64===63||y===l.height-1){w.parts.push(new Blob(w.pending));w.pending=[]}}
+   if(y%64===63)await new Promise(r=>setTimeout(r,0));
+  }
+  for(const c of l.channels){const w=writers.get(c.id);if(!w){parts.push(block.subarray(c.start-2,c.start+c.length-2));end+=c.length;continue}hv.setUint32(c.lengthField,w.length,le);parts.push(new Uint8Array(le?[1,0]:[0,1]),w.table,...w.parts);end+=w.length}
+ }
+ hv.setUint32(44,end-48,le);parts.push(new Uint8Array((4-end%4)%4),block.subarray(tailStart));
+ const lb=new Blob(parts),flat=flatMatchingSource({...file,overlay:true}),offset=Math.ceil(flat.bytes.length/4)*4;
+ if(offset+lb.size>=2**32)throw Error('Compressed output exceeds classic TIFF limit');
+ for(let y=0;y<flat.h;y++){let p=flat.offsets[0]+y*flat.w*3;for(let x=0;x<flat.w;x++,p+=3){if(rule&&!rule.inside(x,y))continue;const v=match(key(flat.bytes,p));if(v!=null){flat.bytes[p]=v>>16;flat.bytes[p+1]=v>>8&255;flat.bytes[p+2]=v&255}}if(y%64===63)await new Promise(r=>setTimeout(r,0))}
+ const d=new DataView(flat.bytes.buffer);d.setUint32(flat.layerEntry+4,lb.size,file.little);d.setUint32(flat.layerEntry+8,offset,file.little);
+ return new Blob([flat.bytes,new Uint8Array(offset-flat.bytes.length),lb],{type:'image/tiff'});
+}
 async function exportTiff(file,from,to,tolerance,scope=-1,rule=null,matchingName="Matching",ramp=null,contrast=false,overrides=null){
   const original=file;
   if(file.layers?.some(layer=>layer.channels.some(c=>c.compression!==0))){
@@ -1302,8 +1334,8 @@ async function exportTiff(file,from,to,tolerance,scope=-1,rule=null,matchingName
     if(file.layers===null)throw Error(layerHelp);
   }
   const flat=file.layers===null;
-  if(flat)file=flatMatchingSource(file);
-  const out=flat?file.bytes:file.bytes.slice();
+  if(flat&&!original.compressedOriginal)file=flatMatchingSource(file);
+  const out=original.compressedOriginal?null:flat?file.bytes:file.bytes.slice();
   const smart=smartRangeActive(),classify=contrast&&!smart?contrastClassifier(from,tolerance,overrides):null;
   const smartCache=new Map();
   function match(colour){
@@ -1318,6 +1350,7 @@ async function exportTiff(file,from,to,tolerance,scope=-1,rule=null,matchingName
       const v=to[role];
       return v==null?null:detailColour(colour,from[role],v);
   }
+  if(original.compressedOriginal){if(scope>=0)throw Error('Streaming export requires all layers');return compressedOriginalExport(original,match,rule)}
   if(file.depth===16){
     const view=new DataView(out.buffer);
     for(let y=0;y<file.h;y++){
@@ -1392,7 +1425,7 @@ async function exportTiff(file,from,to,tolerance,scope=-1,rule=null,matchingName
 }
 el('saveTiff').onclick=async()=>{
   if(!tiffSource)return;
-  if(el('exportMode').value==='original'&&tiffSource.layers===null){el('tiffMsg').textContent='Original layer replacement unsupported for this TIFF. No extra layer was created. '+(tiffSource.bytes.layerDiagnostic||'Unknown layer format');return}
+  if(el('exportMode').value==='original'&&tiffSource.layers===null&&!tiffSource.compressedOriginal){el('tiffMsg').textContent='Original layer replacement unsupported for this TIFF. No extra layer was created. '+(tiffSource.bytes.layerDiagnostic||'Unknown layer format');return}
   if(manualActive()&&!manualSelected().length){el('tiffMsg').textContent='Select at least one original layer.';return}
   const full=el('method').value==='full',index=Number(el('tiffIndex').value);
   if(!full&&!rangeRule&&el('area').value==='one'){el('tiffMsg').textContent='For TIFF export, select Everywhere this colour appears.';return}
@@ -1423,7 +1456,7 @@ try{
   stage(48,'Opening your design…');await pause(24);
   if(isTiff){
   let input=await loadTiff(buffer);if(t!==ticket)return;
-  if(input.layers?.some(l=>l.channels.some(c=>c.compression!==0))){try{input=await expandLayerChannels(input)}catch(err){input.bytes.layerDiagnostic='Layer decompression: '+err.message;input.layers=null;try{input.inventory=readLayers(input.bytes,input.tags.get(37724),true,input.depth);input.overlay=input.inventory?.overlay}catch{input.inventory=null}}}
+  if(input.layers?.some(l=>l.channels.some(c=>c.compression!==0))){try{input=await expandLayerChannels(input)}catch(err){input.bytes.layerDiagnostic='Layer decompression: '+err.message;if(input.depth===8&&input.layers?.every(l=>l.channels.every(c=>c.compression===0||c.compression===1)))input.compressedOriginal=input.layers;input.layers=null;try{input.inventory=readLayers(input.bytes,input.tags.get(37724),true,input.depth);input.overlay=input.inventory?.overlay}catch{input.inventory=null}}}
   originalPhoto=null;tiffSource=input;
   if(input.layers?.length){
     el('layerChoice').replaceChildren(...input.layers.map((l,i)=>new Option((l.name||'Layer '+(i+1))+(i===0?' · bottom':''),i)),new Option('All layers',-1));
@@ -1777,7 +1810,7 @@ el('batchStudio').onclick=async()=>{
  if(!tiffSource){alert('Upload a TIFF file first.');return}
  const indices=cards.map((card,i)=>card.check.checked?i:-1).filter(i=>i>=0);
  if(!indices.length){alert('Select matchings in Matching Cards first.');return}
- if(el('exportMode').value==='original'&&tiffSource.layers===null){alert('Original layer replacement unsupported for this TIFF. No files exported.');return}
+ if(el('exportMode').value==='original'&&tiffSource.layers===null&&!tiffSource.compressedOriginal){alert('Original layer replacement unsupported for this TIFF. No files exported.');return}
  if(manualActive()&&!manualSelected().length){alert('Select original layers first.');return}
  if(el('method').value!=='full'&&!rangeRule&&el('area').value==='one'){alert('Select Everywhere this colour appears before batch export.');return}
  if(!confirm('Download '+indices.length+' full-size TIFF files sequentially? Large files need time and disk space. Allow multiple downloads in Chrome.'))return;
