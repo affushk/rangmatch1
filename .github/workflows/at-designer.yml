@@ -16,6 +16,8 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
       - name: Prepare Android project
         run: |
           mkdir -p app/src/main/assets app/src/main/java/com/atdesigner/app
