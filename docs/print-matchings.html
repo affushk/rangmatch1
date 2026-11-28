@@ -921,7 +921,7 @@ const tiffHelp='Use an 8-bit or 16-bit interleaved RGB TIFF with strips. Support
 const layerHelp='This layered TIFF requires simple uncompressed RGB pixel layers. Try the Rang Studio layer test file.';
 function readLayers(bytes,item,namesOnly=false,depth=8){
   if(!item)return [];
-  const fail=()=>{throw Error(layerHelp)};
+  const fail=()=>{throw Error('Layer parser rejected data at byte '+pos+' (block length '+limit+')')};
   const block=bytes.subarray(item.start,item.start+item.n);
   const view=new DataView(block.buffer,block.byteOffset,block.length);
   let pos=0,limit=block.length;
@@ -1133,7 +1133,7 @@ function openTiff(buffer){
   for(let i=1;i<reserved.length;i++)if(reserved[i][0]<reserved[i-1][1])throw Error(tiffHelp);
   let layers;
   try { layers=readLayers(bytes,tags.get(37724),false,bits[0]); }
-  catch { layers=null; }
+  catch (err) { layers=null; bytes.layerDiagnostic=err.message; }
   let inventory=layers;
   if(layers===null){try{inventory=readLayers(bytes,tags.get(37724),true,bits[0])}catch{inventory=null}}
   return {bytes,w,h,rows,offsets,layers,inventory,overlay:inventory?.overlay,tags,little,depth:bits[0]};
@@ -1389,7 +1389,7 @@ async function exportTiff(file,from,to,tolerance,scope=-1,rule=null,matchingName
 }
 el('saveTiff').onclick=async()=>{
   if(!tiffSource)return;
-  if(el('exportMode').value==='original'&&tiffSource.layers===null){el('tiffMsg').textContent='Original layer replacement unsupported for this TIFF. No extra layer was created.';return}
+  if(el('exportMode').value==='original'&&tiffSource.layers===null){el('tiffMsg').textContent='Original layer replacement unsupported for this TIFF. No extra layer was created. '+(tiffSource.bytes.layerDiagnostic||'Unknown layer format');return}
   if(manualActive()&&!manualSelected().length){el('tiffMsg').textContent='Select at least one original layer.';return}
   const full=el('method').value==='full',index=Number(el('tiffIndex').value);
   if(!full&&!rangeRule&&el('area').value==='one'){el('tiffMsg').textContent='For TIFF export, select Everywhere this colour appears.';return}
@@ -1420,7 +1420,7 @@ try{
   stage(48,'Opening your design…');await pause(24);
   if(isTiff){
   let input=await loadTiff(buffer);if(t!==ticket)return;
-  if(input.layers?.some(l=>l.channels.some(c=>c.compression!==0))){try{input=await expandLayerChannels(input)}catch{input.layers=null;try{input.inventory=readLayers(input.bytes,input.tags.get(37724),true,input.depth);input.overlay=input.inventory?.overlay}catch{input.inventory=null}}}
+  if(input.layers?.some(l=>l.channels.some(c=>c.compression!==0))){try{input=await expandLayerChannels(input)}catch(err){input.bytes.layerDiagnostic='Layer decompression: '+err.message;input.layers=null;try{input.inventory=readLayers(input.bytes,input.tags.get(37724),true,input.depth);input.overlay=input.inventory?.overlay}catch{input.inventory=null}}}
   originalPhoto=null;tiffSource=input;
   if(input.layers?.length){
     el('layerChoice').replaceChildren(...input.layers.map((l,i)=>new Option((l.name||'Layer '+(i+1))+(i===0?' · bottom':''),i)),new Option('All layers',-1));
