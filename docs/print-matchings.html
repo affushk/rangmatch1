@@ -741,8 +741,10 @@ function manualTargets(index){
   // Preserve the original palette; extend it with coordinated shades for additional layers.
   const originals=base.slice();
   while(base.length<picks.length){const n=base.length-originals.length,k=parseInt(originals[1+n%Math.max(1,originals.length-1)]?.slice(1)||originals[0].slice(1),16);base.push(hex(mixInk(k,Math.floor(n/Math.max(1,originals.length-1))%2?0:0xffffff,Math.min(.65,.22+.12*Math.floor(n/Math.max(1,originals.length-1))))))}
-  return picks.map((_,i)=>custom[i]||base[i]);
+  return picks.map((p,i)=>tiffSource.layers[p.index].blend==='idiv'?hex(neutralDivideInk(p.ink)):custom[i]||base[i]);
 }
+function neutralDivideInk(ink){const v=Math.max(1,Math.round(.2126*((ink>>16)&255)+.7152*((ink>>8)&255)+.0722*(ink&255)));return v*65793;}
+function manualLayerTint(file,pick,old,target){return file.layers[pick.index].blend==='idiv'?neutralDivideInk(old):detailColour(old,pick.ink,target);}
 function blendedDelta(file,x,y,recolour){
   let a=0;const before=[0,0,0],after=[0,0,0];
   for(let i=0;i<file.layers.length;i++){
@@ -760,13 +762,13 @@ function blendedDelta(file,x,y,recolour){
   return after.map((v,k)=>a*(v-before[k]));
 }
 function manualDelta(file,picks,targets,x,y){
-  if(file.layers.some(l=>(l.blend==='mul '||l.blend==='idiv')))return blendedDelta(file,x,y,(i,old)=>{const j=picks.findIndex(p=>p.index===i);return j<0?old:detailColour(old,picks[j].ink,targets[j])});
+  if(file.layers.some(l=>(l.blend==='mul '||l.blend==='idiv')))return blendedDelta(file,x,y,(i,old)=>{const j=picks.findIndex(p=>p.index===i);return j<0?old:manualLayerTint(file,picks[j],old,targets[j])});
   const delta=[0,0,0];
   for(let j=0;j<picks.length;j++){
     const {index,ink}=picks[j],layer=file.layers[index],p=layerPixel(layer,x,y);
     let weight=coverage(file,layer,p);if(!weight)continue;
     for(let k=index+1;k<file.layers.length&&weight;k++)weight*=1-coverage(file,file.layers[k],layerPixel(file.layers[k],x,y));
-    const old=layerColour(file,layer,p),next=detailColour(old,ink,targets[j]);
+    const old=layerColour(file,layer,p),next=manualLayerTint(file,picks[j],old,targets[j]);
     for(let k=0;k<3;k++){const shift=16-8*k;delta[k]+=weight*(((next>>shift)&255)-((old>>shift)&255))}
   }
   return delta;
@@ -802,7 +804,7 @@ async function exportManual(file,index){
     for(let p=0;p<layer.size;p++){
       if(p&&p%262144===0)await new Promise(resolve=>setTimeout(resolve,0));
       if(!manualAlpha(file,layer,p))continue;
-      const old=layerColour(file,layer,p),next=detailColour(old,ink,targets[j]);
+      const old=layerColour(file,layer,p),next=manualLayerTint(file,picks[j],old,targets[j]);
       for(let k=0;k<3;k++){const shift=16-8*k,at=layer.planes[k]+p*step,colour=(next>>shift)&255;if(step===1)out[at]=colour;else{const delta=colour-((old>>shift)&255);v.setUint16(at,Math.max(0,Math.min(65535,v.getUint16(at,false)+delta*257)),false)}}
     }
   }
