@@ -988,9 +988,9 @@ function readLayers(bytes,item,namesOnly=false,depth=8){
       ids.add(c.id);
       c.compression=word();c.start=take(c.length-2);
       if(c.compression===0){
-        if(c.length!==layer.size*(depth/8)+2)fail();
+        if(c.length!==layer.size*(depth/8)+2)throw Error('Raw channel length mismatch in '+layer.name+' channel '+c.id+': '+c.length+' expected '+(layer.size*(depth/8)+2));
         layer.planes[c.id]=item.start+c.start;
-      }else if(c.compression===1){if(c.length<2+2*layer.height)fail()}else if(c.compression!==2)fail();
+      }else if(c.compression===1){if(c.length<2+2*layer.height)fail()}else if(c.compression!==2&&c.compression!==3)throw Error('Unsupported channel compression '+c.compression+' in '+layer.name+' channel '+c.id);
     }
     if([0,1,2].some(id=>!ids.has(id)))fail();
   }
@@ -1199,6 +1199,7 @@ async function expandLayerChannels(file){
   for(const layer of file.layers)blockEnd+=(layer.size*step+2)*layer.channels.length;
   const padded=Math.ceil(blockEnd/4)*4,offset=Math.ceil(file.bytes.length/4)*4;
   const blockSize=padded+block.length-tailStart;
+  if(offset+blockSize>=2**32)throw Error('Expanded layers exceed classic TIFF 4 GiB limit; original layers retained.');
   const out=new Uint8Array(offset+blockSize);
   out.set(file.bytes);out.set(block.subarray(0,headerEnd),offset);
   out.set(block.subarray(tailStart),offset+padded);
@@ -1210,7 +1211,7 @@ async function expandLayerChannels(file){
     for(const c of layer.channels){
       v.setUint32(offset+c.lengthField,layer.size*step+2,le);dest+=2;
       if(c.compression===0){out.set(block.subarray(c.start,c.start+layer.size*step),dest);dest+=layer.size*step;continue}
-      if(c.compression===2){const decoded=await unpackStrip(block.subarray(c.start,c.start+c.length-2),8,layer.size*step);out.set(decoded,dest);dest+=decoded.length;continue}
+      if(c.compression===2||c.compression===3){const decoded=await unpackStrip(block.subarray(c.start,c.start+c.length-2),8,layer.size*step);if(c.compression===3){for(let y=0;y<layer.height;y++){const start=y*layer.width*step;if(step===1){for(let x=1;x<layer.width;x++)decoded[start+x]=(decoded[start+x]+decoded[start+x-1])&255;}else{const dv=new DataView(decoded.buffer);for(let x=1;x<layer.width;x++){const p=start+2*x;dv.setUint16(p,(dv.getUint16(p)+dv.getUint16(p-2))&65535);}}}}out.set(decoded,dest);dest+=decoded.length;continue}
       let p=c.start+2*layer.height;
       for(let row=0;row<layer.height;row++){
         const end=p+source.getUint16(c.start+2*row,le),rowEnd=dest+layer.width*step;
