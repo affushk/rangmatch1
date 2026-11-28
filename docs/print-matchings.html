@@ -517,7 +517,7 @@ function detailColour(pixel,sourceInk,target){
   return result;
 }
 function tintComposite(data,p,hit,target){
-  if(hit.file?.layers.some(l=>l.blend==='mul ')){const d=blendedDelta(hit.file,hit.x,hit.y,(i,old)=>i===hit.index?target:old);for(let k=0;k<3;k++)data[p+k]=Math.max(0,Math.min(255,Math.round(data[p+k]+d[k])));return}
+  if(hit.file?.layers.some(l=>(l.blend==='mul '||l.blend==='fdiv'))){const d=blendedDelta(hit.file,hit.x,hit.y,(i,old)=>i===hit.index?target:old);for(let k=0;k<3;k++)data[p+k]=Math.max(0,Math.min(255,Math.round(data[p+k]+d[k])));return}
   for(let i=0;i<3;i++){
     const shift=16-8*i;
     const delta=((target>>shift)&255)-((hit.colour>>shift)&255);
@@ -751,7 +751,7 @@ function blendedDelta(file,x,y,recolour){
     const old=layerColour(file,layer,p),next=recolour(i,old),newAlpha=s+a*(1-s);
     for(let k=0;k<3;k++){
       const shift=16-8*k,b=(old>>shift)&255,n=(next>>shift)&255;
-      const mix=(back,ink)=>layer.blend==='mul '?ink*(1-a+a*back/255):ink;
+      const mix=(back,ink)=>layer.blend==='mul '?ink*(1-a+a*back/255):layer.blend==='fdiv'?ink*(1-a)+a*(ink===0?255:Math.min(255,back*255/ink)):ink;
       before[k]=(before[k]*a*(1-s)+s*mix(before[k],b))/newAlpha;
       after[k]=(after[k]*a*(1-s)+s*mix(after[k],n))/newAlpha;
     }
@@ -760,7 +760,7 @@ function blendedDelta(file,x,y,recolour){
   return after.map((v,k)=>a*(v-before[k]));
 }
 function manualDelta(file,picks,targets,x,y){
-  if(file.layers.some(l=>l.blend==='mul '))return blendedDelta(file,x,y,(i,old)=>{const j=picks.findIndex(p=>p.index===i);return j<0?old:detailColour(old,picks[j].ink,targets[j])});
+  if(file.layers.some(l=>(l.blend==='mul '||l.blend==='fdiv')))return blendedDelta(file,x,y,(i,old)=>{const j=picks.findIndex(p=>p.index===i);return j<0?old:detailColour(old,picks[j].ink,targets[j])});
   const delta=[0,0,0];
   for(let j=0;j<picks.length;j++){
     const {index,ink}=picks[j],layer=file.layers[index],p=layerPixel(layer,x,y);
@@ -948,7 +948,7 @@ function readLayers(bytes,item,namesOnly=false,depth=8){
     }
     if(str(4)!==sig)fail();
     const rawBlend=str(4),blend=le?rawBlend.split('').reverse().join(''):rawBlend,opacity=block[take(1)];let fillOpacity=255;
-    if(!namesOnly&&!['norm','mul '].includes(blend))fail();
+    if(!namesOnly&&!['norm','mul ','fdiv'].includes(blend))fail();
     const clipping=block[take(1)],hidden=Boolean(block[take(1)]&2);take(1);if(clipping&&!namesOnly)fail();
     const end=pos+4+long();
     if(end>limit)fail();
